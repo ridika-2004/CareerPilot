@@ -3,6 +3,15 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 const API = "http://localhost:8000/assistant";
+import { useState, useEffect } from "react";
+import axios from "axios";
+
+const SUGGESTIONS = [
+  "Am I ready for a data engineer role?",
+  "What skills am I missing for a Google internship?",
+  "Build me a 3-month roadmap to become job-ready",
+  "Draft a cover letter for a backend engineer role",
+];
 
 const s = {
   container: {
@@ -274,6 +283,44 @@ export default function Assistant() {
       );
     } catch (err) {
       console.error(err);
+  const [loading, setLoading] = useState(false);
+  const [cvUploaded, setCvUploaded] = useState(false);
+
+  useEffect(() => {
+    setCvUploaded(localStorage.getItem("cv_uploaded") === "true");
+  }, []);
+
+  const send = async (text) => {
+    const msg = text || input;
+    if (!msg.trim()) return;
+    setInput("");
+    const next = [...messages, { role: "user", content: msg }];
+    setMessages(next);
+    setLoading(true);
+
+    const userId = localStorage.getItem("user_id") || "user_default";
+
+    try {
+      const res = await axios.post("http://localhost:8000/api/cv/ask/", {
+        user_id: userId,
+        question: msg,
+      });
+      let reply = res.data.answer;
+      if (res.data.source_sections && res.data.source_sections.length > 0) {
+        const uniqueSections = [...new Set(res.data.source_sections)].map(s => s.toUpperCase());
+        reply += `\n\n*(Grounded in sections: ${uniqueSections.join(", ")})*`;
+      }
+      setMessages([...next, { role: "assistant", content: reply }]);
+    } catch (err) {
+      setMessages([
+        ...next,
+        {
+          role: "assistant",
+          content: "Sorry, I had trouble connecting to the career pilot agent: " + (err.response?.data?.error || err.message),
+        },
+      ]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -286,6 +333,21 @@ export default function Assistant() {
         <button style={s.newChatBtn} onClick={createSession}>
           + New Chat
         </button>
+    <div>
+      <div style={s.h1}>AI Assistant</div>
+      <div style={s.sub}>Ask anything about your career. Responses are grounded in your CV.</div>
+
+      {!cvUploaded && (
+        <div style={{ background: "#fff8e1", border: "1px solid #ffe082", borderRadius: 6, padding: "12px 16px", marginBottom: 16, fontSize: 13, color: "#b78103" }}>
+          ⚠️ No CV has been uploaded yet. Grounded career analysis will not work until you upload a PDF or DOCX file on the <strong>Profile</strong> page.
+        </div>
+      )}
+
+      <div style={s.suggestions}>
+        {SUGGESTIONS.map((q) => (
+          <button key={q} style={s.suggBtn} onClick={() => send(q)}>{q}</button>
+        ))}
+      </div>
 
         <div style={s.sessionList}>
           {sessions.map((sesh) => (

@@ -1,4 +1,15 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import axios from "axios";
+
+// Generate or fetch a session-based user ID
+const getUserId = () => {
+  let id = localStorage.getItem("user_id");
+  if (!id) {
+    id = "user_" + Math.random().toString(36).substring(2, 9);
+    localStorage.setItem("user_id", id);
+  }
+  return id;
+};
 
 const PARSED_CV = {
   name: "Rafiul Islam",
@@ -37,7 +48,59 @@ const s = {
 
 export default function Profile() {
   const [uploaded, setUploaded] = useState(false);
-  const [cv] = useState(PARSED_CV);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [uploadResult, setUploadResult] = useState(null);
+  const fileInputRef = useRef(null);
+  const userId = getUserId();
+  const [cv, setCv] = useState(PARSED_CV);
+
+  useEffect(() => {
+    const isUploaded = localStorage.getItem("cv_uploaded") === "true";
+    setUploaded(isUploaded);
+    const savedResult = localStorage.getItem("cv_upload_result");
+    if (savedResult) {
+      const resultObj = JSON.parse(savedResult);
+      setUploadResult(resultObj);
+      if (resultObj.parsed_cv) {
+        setCv(resultObj.parsed_cv);
+      }
+    }
+  }, []);
+
+  const handleUpload = async (file) => {
+    if (!file) return;
+    setLoading(true);
+    setError("");
+    const formData = new FormData();
+    formData.append("cv", file);
+    formData.append("user_id", userId);
+
+    try {
+      const res = await axios.post("http://localhost:8000/api/cv/upload/", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      setUploadResult(res.data);
+      setUploaded(true);
+      if (res.data.parsed_cv) {
+        setCv(res.data.parsed_cv);
+      }
+      localStorage.setItem("cv_uploaded", "true");
+      localStorage.setItem("cv_upload_result", JSON.stringify(res.data));
+    } catch (err) {
+      setError(err.response?.data?.error || "Upload failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      handleUpload(e.target.files[0]);
+    }
+  };
 
   return (
     <div>
@@ -45,12 +108,31 @@ export default function Profile() {
       <div style={s.sub}>Your CV is the source of truth for every agent and recommendation.</div>
 
       <div style={s.uploadBox}>
-        <div style={s.uploadLabel}>{uploaded ? "CV uploaded and indexed" : "Upload your CV"}</div>
-        <div style={s.uploadSub}>{uploaded ? "Chunked, embedded, and stored in vector DB" : "PDF or DOCX — all agents will use this"}</div>
-        <button style={s.btn(uploaded)} onClick={() => setUploaded(!uploaded)}>
-          {uploaded ? "Re-upload" : "Choose file"}
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept=".pdf,.doc,.docx"
+          style={{ display: "none" }}
+          onChange={handleFileChange}
+        />
+        <div style={s.uploadLabel}>
+          {loading ? "Processing CV..." : uploaded ? "CV uploaded and indexed" : "Upload your CV"}
+        </div>
+        <div style={s.uploadSub}>
+          {loading
+            ? "Extracting text, chunking, and generating embeddings..."
+            : uploaded
+            ? `Chunks stored: ${uploadResult?.chunks_stored || 0} | Sections: ${uploadResult?.sections?.join(", ") || ""}`
+            : "PDF or DOCX — all agents will use this"}
+        </div>
+        {error && <div style={{ color: "#d93025", fontSize: 12, marginBottom: 12 }}>{error}</div>}
+        <button
+          style={s.btn(uploaded || loading)}
+          disabled={loading}
+          onClick={() => fileInputRef.current.click()}
+        >
+          {loading ? "Uploading..." : uploaded ? "Re-upload CV" : "Choose file"}
         </button>
-        {!uploaded && <button style={s.btn(true)}>Build CV here</button>}
       </div>
 
       {uploaded && (
