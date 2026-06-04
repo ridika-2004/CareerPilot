@@ -22,11 +22,10 @@ SECRET_KEY = os.getenv(
 
 DEBUG = os.getenv("DEBUG", "True").lower() in ("true", "1", "yes")
 
-ALLOWED_HOSTS = [
-    h.strip()
-    for h in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
-    if h.strip()
-]
+if DEBUG:
+    ALLOWED_HOSTS = ["*"]  # Accept all hosts in dev/production
+else:
+    ALLOWED_HOSTS = ["*"]  # Accept all hosts — tighten for production if needed
 
 # CORS
 CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL", "True").lower() in ("true", "1")
