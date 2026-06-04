@@ -1,30 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import axios from "axios";
-
-// Generate or fetch a session-based user ID
-const getUserId = () => {
-  let id = localStorage.getItem("user_id");
-  if (!id) {
-    id = "user_" + Math.random().toString(36).substring(2, 9);
-    localStorage.setItem("user_id", id);
-  }
-  return id;
-};
-
-const PARSED_CV = {
-  name: "Rafiul Islam",
-  title: "CS Student — BUET",
-  email: "rafiul@example.com",
-  skills: ["Python", "TensorFlow", "SQL", "FastAPI", "Docker", "Git"],
-  experience: [
-    { role: "Backend Intern", company: "TechStart BD", duration: "Jun–Sep 2024", bullets: ["Built REST APIs serving 10k daily users", "Reduced DB query time by 40%"] },
-  ],
-  education: [{ degree: "B.Sc. in CSE", institution: "BUET", year: "2021–2025" }],
-  projects: [
-    { name: "Sentiment Analyzer", desc: "NLP model trained on 50k BD Twitter data, 88% accuracy" },
-    { name: "E-commerce Backend", desc: "Django + PostgreSQL, deployed on AWS EC2" },
-  ],
-};
+import useAuth from "../context/useAuth";
+import API_URL from "../src/config";
 
 const s = {
   h1: { fontSize: 20, fontWeight: 700, marginBottom: 4 },
@@ -47,26 +24,27 @@ const s = {
 };
 
 export default function Profile() {
-  const [uploaded, setUploaded] = useState(false);
+  const { user } = useAuth();
+  const userId = user?.user_id?.toString() || "anonymous";
+
+  // Per-user localStorage keys
+  const cvUploadedKey = `cv_uploaded_${userId}`;
+  const cvResultKey = `cv_upload_result_${userId}`;
+
+  // Derive initial state from localStorage (no effect needed)
+  const savedResult = (() => {
+    try {
+      const raw = localStorage.getItem(cvResultKey);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  })();
+
+  const [uploaded, setUploaded] = useState(() => localStorage.getItem(cvUploadedKey) === "true");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [uploadResult, setUploadResult] = useState(null);
+  const [uploadResult, setUploadResult] = useState(savedResult);
+  const [cv, setCv] = useState(savedResult?.parsed_cv || null);
   const fileInputRef = useRef(null);
-  const userId = getUserId();
-  const [cv, setCv] = useState(PARSED_CV);
-
-  useEffect(() => {
-    const isUploaded = localStorage.getItem("cv_uploaded") === "true";
-    setUploaded(isUploaded);
-    const savedResult = localStorage.getItem("cv_upload_result");
-    if (savedResult) {
-      const resultObj = JSON.parse(savedResult);
-      setUploadResult(resultObj);
-      if (resultObj.parsed_cv) {
-        setCv(resultObj.parsed_cv);
-      }
-    }
-  }, []);
 
   const handleUpload = async (file) => {
     if (!file) return;
@@ -77,7 +55,7 @@ export default function Profile() {
     formData.append("user_id", userId);
 
     try {
-      const res = await axios.post("http://localhost:8000/api/cv/upload/", formData, {
+      const res = await axios.post(`${API_URL}/api/cv/upload/`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -87,8 +65,8 @@ export default function Profile() {
       if (res.data.parsed_cv) {
         setCv(res.data.parsed_cv);
       }
-      localStorage.setItem("cv_uploaded", "true");
-      localStorage.setItem("cv_upload_result", JSON.stringify(res.data));
+      localStorage.setItem(cvUploadedKey, "true");
+      localStorage.setItem(cvResultKey, JSON.stringify(res.data));
     } catch (err) {
       setError(err.response?.data?.error || "Upload failed. Please try again.");
     } finally {
@@ -123,9 +101,9 @@ export default function Profile() {
             ? "Extracting text, chunking, and generating embeddings..."
             : uploaded
             ? `Chunks stored: ${uploadResult?.chunks_stored || 0} | Sections: ${uploadResult?.sections?.join(", ") || ""}`
-            : "PDF or DOCX — all agents will use this"}
+            : "PDF or DOCX -- all agents will use this"}
         </div>
-        {error && <div style={{ color: "#d93025", fontSize: 12, marginBottom: 12 }}>{error}</div>}
+        {error && <div style={{ color: "#999", fontSize: 12, marginBottom: 12 }}>{error}</div>}
         <button
           style={s.btn(uploaded || loading)}
           disabled={loading}
@@ -135,25 +113,25 @@ export default function Profile() {
         </button>
       </div>
 
-      {uploaded && (
+      {uploaded && cv && (
         <div>
           <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 16 }}>
-            {cv.name} — <span style={{ fontWeight: 400, color: "#666", fontSize: 14 }}>{cv.title}</span>
+            {cv.name} -- <span style={{ fontWeight: 400, color: "#666", fontSize: 14 }}>{cv.title}</span>
           </div>
 
           <div style={s.grid}>
             <div>
               <div style={s.box}>
                 <div style={s.boxHead}>Skills</div>
-                {cv.skills.map((sk) => <span key={sk} style={s.tag}>{sk}</span>)}
+                {cv.skills?.map((sk) => <span key={sk} style={s.tag}>{sk}</span>)}
               </div>
 
               <div style={s.box}>
                 <div style={s.boxHead}>Education</div>
-                {cv.education.map((e) => (
+                {cv.education?.map((e) => (
                   <div key={e.degree}>
                     <div style={{ fontWeight: 600, fontSize: 13 }}>{e.degree}</div>
-                    <div style={{ fontSize: 12, color: "#777" }}>{e.institution} · {e.year}</div>
+                    <div style={{ fontSize: 12, color: "#777" }}>{e.institution} - {e.year}</div>
                   </div>
                 ))}
               </div>
@@ -162,18 +140,18 @@ export default function Profile() {
             <div>
               <div style={s.box}>
                 <div style={s.boxHead}>Experience</div>
-                {cv.experience.map((e) => (
+                {cv.experience?.map((e) => (
                   <div key={e.role} style={s.expItem}>
                     <div style={s.expRole}>{e.role}</div>
-                    <div style={s.expCo}>{e.company} · {e.duration}</div>
-                    {e.bullets.map((b) => <div key={b} style={s.bullet}>· {b}</div>)}
+                    <div style={s.expCo}>{e.company} - {e.duration}</div>
+                    {e.bullets?.map((b) => <div key={b} style={s.bullet}>- {b}</div>)}
                   </div>
                 ))}
               </div>
 
               <div style={s.box}>
                 <div style={s.boxHead}>Projects</div>
-                {cv.projects.map((p) => (
+                {cv.projects?.map((p) => (
                   <div key={p.name} style={s.projItem}>
                     <div style={s.projName}>{p.name}</div>
                     <div style={s.projDesc}>{p.desc}</div>

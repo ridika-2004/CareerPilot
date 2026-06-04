@@ -1,20 +1,21 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import KanbanBoard from "../components/KanbanBoard";
+import API_URL from "../src/config";
 
 const s = {
-  h1: { fontSize: 22, fontWeight: 700, marginBottom: 4, color: "#111", fontFamily: "'Inter', system-ui, sans-serif" },
-  sub: { color: "#888", fontSize: 13, marginBottom: 24, fontFamily: "'Inter', system-ui, sans-serif" },
+  h1: { fontSize: 22, fontWeight: 700, marginBottom: 4, color: "#111", fontFamily: "'Roboto Mono', monospace" },
+  sub: { color: "#888", fontSize: 13, marginBottom: 24, fontFamily: "'Roboto Mono', monospace" },
   tabs: { display: "flex", gap: 0, marginBottom: 28, borderBottom: "2px solid #f0f0f0" },
   tab: (a) => ({
-    border: "none", background: "none", padding: "10px 20px", fontFamily: "'Inter', system-ui, sans-serif",
+    border: "none", background: "none", padding: "10px 20px", fontFamily: "'Roboto Mono', monospace",
     fontSize: 13, cursor: "pointer", color: a ? "#111" : "#999", fontWeight: a ? 700 : 400,
     borderBottom: a ? "2px solid #111" : "2px solid transparent", marginBottom: -2, transition: "all 0.15s",
   }),
   row: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18, marginBottom: 28 },
   box: {
     background: "#fff", border: "1px solid #e5e5e5", borderRadius: 10,
-    padding: 20, position: "relative", fontFamily: "'Inter', system-ui, sans-serif",
+    padding: 20, position: "relative", fontFamily: "'Roboto Mono', monospace",
   },
   boxHead: { fontWeight: 700, fontSize: 14, marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", color: "#111" },
 
@@ -24,14 +25,14 @@ const s = {
   todoText: (done) => ({ color: done ? "#bbb" : "#222", textDecoration: done ? "line-through" : "none", flex: 1, lineHeight: 1.4 }),
   todoDelBtn: { background: "none", border: "none", color: "#ddd", cursor: "pointer", fontSize: 14, padding: "0 2px", flexShrink: 0 },
   addRow: { display: "flex", gap: 6, position: "absolute", bottom: 16, left: 16, right: 16 },
-  input: { flex: 1, border: "1px solid #e0e0e0", borderRadius: 6, padding: "7px 10px", fontSize: 13, fontFamily: "'Inter', system-ui, sans-serif", outline: "none" },
-  addBtn: { border: "none", borderRadius: 6, padding: "7px 14px", background: "#111", color: "#fff", fontSize: 12, cursor: "pointer", fontFamily: "'Inter', system-ui, sans-serif", flexShrink: 0 },
+  input: { flex: 1, border: "1px solid #e0e0e0", borderRadius: 6, padding: "7px 10px", fontSize: 13, fontFamily: "'Roboto Mono', monospace", outline: "none" },
+  addBtn: { border: "none", borderRadius: 6, padding: "7px 14px", background: "#111", color: "#fff", fontSize: 12, cursor: "pointer", fontFamily: "'Roboto Mono', monospace", flexShrink: 0 },
 
   // Goal progress (weekly application goal)
-  goalCard: { background: "#f8f9ff", border: "1px solid #e0e4ff", borderRadius: 8, padding: "14px 16px", marginBottom: 14 },
+  goalCard: { background: "#fafafa", border: "1px solid #e5e5e5", borderRadius: 8, padding: "14px 16px", marginBottom: 14 },
   goalLabel: { fontSize: 13, fontWeight: 600, color: "#333", marginBottom: 8, display: "flex", justifyContent: "space-between" },
   bar: { height: 8, background: "#e5e7eb", borderRadius: 4, overflow: "hidden", marginBottom: 6 },
-  fill: (pct, color) => ({ height: "100%", width: `${pct}%`, background: color || "#6366f1", borderRadius: 4, transition: "width 0.6s ease" }),
+  fill: (pct) => ({ height: "100%", width: `${pct}%`, background: "#1a1a1a", borderRadius: 4, transition: "width 0.6s ease" }),
   pctText: { fontSize: 11, color: "#888", textAlign: "right" },
 
   // Custom goals
@@ -45,11 +46,11 @@ const s = {
     padding: "10px 12px", borderRadius: 7, border: "1px solid #f0f0f0", background: "#fafafa",
   },
   goalText: (done) => ({ flex: 1, fontSize: 13, color: done ? "#bbb" : "#222", textDecoration: done ? "line-through" : "none", lineHeight: 1.5 }),
-  goalDeadline: (overdue) => ({ fontSize: 11, color: overdue ? "#ef4444" : "#888", marginTop: 2 }),
+  goalDeadline: (overdue) => ({ fontSize: 11, color: overdue ? "#999" : "#888", marginTop: 2 }),
   goalDelBtn: { background: "none", border: "none", color: "#ddd", cursor: "pointer", fontSize: 14, padding: 0, flexShrink: 0 },
 
   // Deadline input form
-  deadlineInput: { border: "1px solid #e0e0e0", borderRadius: 6, padding: "7px 10px", fontSize: 12, fontFamily: "'Inter', system-ui, sans-serif", outline: "none", width: "140px" },
+  deadlineInput: { border: "1px solid #e0e0e0", borderRadius: 6, padding: "7px 10px", fontSize: 12, fontFamily: "'Roboto Mono', monospace", outline: "none", width: "140px" },
 
   // Calendar
   calHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
@@ -58,17 +59,17 @@ const s = {
   calGrid: { display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, textAlign: "center" },
   calDayLabel: { fontWeight: 600, fontSize: 10, color: "#999", padding: "4px 0", textTransform: "uppercase" },
   calCell: (isToday, isSelected) => ({
-    background: isSelected ? "#eff6ff" : "#fff",
-    border: isToday ? "2px solid #6366f1" : "1px solid #f0f0f0",
+    background: isSelected ? "#f5f5f5" : "#fff",
+    border: isToday ? "2px solid #1a1a1a" : "1px solid #f0f0f0",
     borderRadius: 6, minHeight: 62, padding: 4,
     cursor: "pointer", textAlign: "left", position: "relative",
     display: "flex", flexDirection: "column",
   }),
-  calDateNum: (isToday) => ({ fontSize: 11, fontWeight: isToday ? 800 : 400, color: isToday ? "#6366f1" : "#444" }),
+  calDateNum: (isToday) => ({ fontSize: 11, fontWeight: isToday ? 700 : 400, color: isToday ? "#1a1a1a" : "#444" }),
   eventTag: (type) => ({
     fontSize: 9, padding: "1px 5px", borderRadius: 3, marginTop: 2,
-    background: type === "interview" ? "#fef3c7" : type === "deadline" ? "#dbeafe" : "#f3f4f6",
-    color: type === "interview" ? "#92400e" : type === "deadline" ? "#1e40af" : "#555",
+    background: "#f0f0f0",
+    color: "#555",
     overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
   }),
 
@@ -76,11 +77,11 @@ const s = {
   backdrop: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.25)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 200 },
   modal: { background: "#fff", border: "1px solid #e5e5e5", borderRadius: 12, padding: 22, width: 340, boxShadow: "0 8px 32px rgba(0,0,0,0.12)" },
   modalTitle: { fontWeight: 700, fontSize: 15, marginBottom: 14, color: "#111" },
-  modalInput: { width: "100%", border: "1px solid #e0e0e0", borderRadius: 6, padding: "8px 10px", fontSize: 13, outline: "none", marginBottom: 8, boxSizing: "border-box", fontFamily: "'Inter', system-ui, sans-serif" },
-  modalSelect: { width: "100%", border: "1px solid #e0e0e0", borderRadius: 6, padding: "8px 10px", fontSize: 13, outline: "none", marginBottom: 14, background: "#fff", fontFamily: "'Inter', system-ui, sans-serif" },
+  modalInput: { width: "100%", border: "1px solid #e0e0e0", borderRadius: 6, padding: "8px 10px", fontSize: 13, outline: "none", marginBottom: 8, boxSizing: "border-box", fontFamily: "'Roboto Mono', monospace" },
+  modalSelect: { width: "100%", border: "1px solid #e0e0e0", borderRadius: 6, padding: "8px 10px", fontSize: 13, outline: "none", marginBottom: 14, background: "#fff", fontFamily: "'Roboto Mono', monospace" },
   modalBtns: { display: "flex", justifyContent: "flex-end", gap: 8 },
-  btnSubmit: { border: "none", borderRadius: 6, padding: "7px 16px", background: "#111", color: "#fff", fontSize: 12, cursor: "pointer", fontFamily: "'Inter', system-ui, sans-serif" },
-  btnCancel: { border: "1px solid #ddd", borderRadius: 6, padding: "7px 16px", background: "#fff", fontSize: 12, cursor: "pointer", fontFamily: "'Inter', system-ui, sans-serif" },
+  btnSubmit: { border: "none", borderRadius: 6, padding: "7px 16px", background: "#111", color: "#fff", fontSize: 12, cursor: "pointer", fontFamily: "'Roboto Mono', monospace" },
+  btnCancel: { border: "1px solid #ddd", borderRadius: 6, padding: "7px 16px", background: "#fff", fontSize: 12, cursor: "pointer", fontFamily: "'Roboto Mono', monospace" },
 
   empty: { color: "#ccc", fontSize: 13, padding: "16px 0", textAlign: "center" },
 };
@@ -119,10 +120,10 @@ export default function Tracker() {
   const fetchData = async () => {
     try {
       const [todosRes, eventsRes, statsRes, goalsRes] = await Promise.all([
-        axios.get(`http://localhost:8000/api/tracker/todos/?user_id=${userId}`),
-        axios.get(`http://localhost:8000/api/tracker/events/?user_id=${userId}`),
-        axios.get(`http://localhost:8000/api/tracker/dashboard/?user_id=${userId}`),
-        axios.get(`http://localhost:8000/api/tracker/goals/?user_id=${userId}`),
+        axios.get(`${API_URL}/api/tracker/todos/?user_id=${userId}`),
+        axios.get(`${API_URL}/api/tracker/events/?user_id=${userId}`),
+        axios.get(`${API_URL}/api/tracker/dashboard/?user_id=${userId}`),
+        axios.get(`${API_URL}/api/tracker/goals/?user_id=${userId}`),
       ]);
       setTodos(todosRes.data);
       setEvents(eventsRes.data);
@@ -140,7 +141,7 @@ export default function Tracker() {
   const addTodo = async () => {
     if (!newTodo.trim()) return;
     try {
-      const res = await axios.post("http://localhost:8000/api/tracker/todos/", { user_id: userId, text: newTodo });
+      const res = await axios.post(`${API_URL}/api/tracker/todos/`, { user_id: userId, text: newTodo });
       setTodos([res.data, ...todos]);
       setNewTodo("");
     } catch (err) { console.error(err); }
@@ -148,14 +149,14 @@ export default function Tracker() {
 
   const toggleTodo = async (id, current) => {
     try {
-      const res = await axios.put(`http://localhost:8000/api/tracker/todos/${id}/`, { user_id: userId, completed: !current });
+      const res = await axios.put(`${API_URL}/api/tracker/todos/${id}/`, { user_id: userId, completed: !current });
       setTodos(todos.map(t => t.id === id ? res.data : t));
     } catch (err) { console.error(err); }
   };
 
   const deleteTodo = async (id) => {
     try {
-      await axios.delete(`http://localhost:8000/api/tracker/todos/${id}/?user_id=${userId}`);
+      await axios.delete(`${API_URL}/api/tracker/todos/${id}/?user_id=${userId}`);
       setTodos(todos.filter(t => t.id !== id));
     } catch (err) { console.error(err); }
   };
@@ -165,7 +166,7 @@ export default function Tracker() {
     const val = parseInt(goalInput);
     if (isNaN(val) || val <= 0) return;
     try {
-      const res = await axios.post("http://localhost:8000/api/tracker/goal/", { user_id: userId, goal_target: val });
+      const res = await axios.post(`${API_URL}/api/tracker/goal/`, { user_id: userId, goal_target: val });
       setStats({ ...stats, goal_target: res.data.goal_target });
       setIsEditingGoal(false);
     } catch (err) { console.error(err); }
@@ -175,7 +176,7 @@ export default function Tracker() {
   const addGoal = async () => {
     if (!newGoalText.trim()) return;
     try {
-      const res = await axios.post("http://localhost:8000/api/tracker/goals/", {
+      const res = await axios.post(`${API_URL}/api/tracker/goals/`, {
         user_id: userId,
         text: newGoalText,
         deadline: newGoalDeadline || undefined,
@@ -189,14 +190,14 @@ export default function Tracker() {
 
   const toggleGoal = async (id, current) => {
     try {
-      const res = await axios.put(`http://localhost:8000/api/tracker/goals/${id}/`, { user_id: userId, completed: !current });
+      const res = await axios.put(`${API_URL}/api/tracker/goals/${id}/`, { user_id: userId, completed: !current });
       setGoals(goals.map(g => g.id === id ? res.data : g));
     } catch (err) { console.error(err); }
   };
 
   const deleteGoal = async (id) => {
     try {
-      await axios.delete(`http://localhost:8000/api/tracker/goals/${id}/?user_id=${userId}`);
+      await axios.delete(`${API_URL}/api/tracker/goals/${id}/?user_id=${userId}`);
       setGoals(goals.filter(g => g.id !== id));
     } catch (err) { console.error(err); }
   };
@@ -221,7 +222,7 @@ export default function Tracker() {
   const addCalendarEvent = async () => {
     if (!eventTitle.trim() || !selectedDate) return;
     try {
-      const res = await axios.post("http://localhost:8000/api/tracker/events/", {
+      const res = await axios.post(`${API_URL}/api/tracker/events/`, {
         user_id: userId, title: eventTitle, date: selectedDate, event_type: eventType,
       });
       setEvents([...events, res.data]);
@@ -232,7 +233,7 @@ export default function Tracker() {
 
   const removeCalendarEvent = async (id) => {
     try {
-      await axios.delete(`http://localhost:8000/api/tracker/events/${id}/?user_id=${userId}`);
+      await axios.delete(`${API_URL}/api/tracker/events/${id}/?user_id=${userId}`);
       setEvents(events.filter(e => e.id !== id));
     } catch (err) { console.error(err); }
   };
@@ -253,9 +254,9 @@ export default function Tracker() {
       <div style={s.sub}>Applications, goals, tasks, and calendar — all in one place.</div>
 
       <div style={s.tabs}>
-        <button id="tab-applications" style={s.tab(tab === "kanban")} onClick={() => setTab("kanban")}>📋 Applications</button>
-        <button id="tab-goals" style={s.tab(tab === "goals")} onClick={() => setTab("goals")}>🎯 Goals & Tasks</button>
-        <button id="tab-calendar" style={s.tab(tab === "calendar")} onClick={() => setTab("calendar")}>📅 Calendar</button>
+        <button id="tab-applications" style={s.tab(tab === "kanban")} onClick={() => setTab("kanban")}>Applications</button>
+        <button id="tab-goals" style={s.tab(tab === "goals")} onClick={() => setTab("goals")}>Goals & Tasks</button>
+        <button id="tab-calendar" style={s.tab(tab === "calendar")} onClick={() => setTab("calendar")}>Calendar</button>
       </div>
 
       {/* ── Kanban ── */}
@@ -267,16 +268,16 @@ export default function Tracker() {
           {/* Weekly application goal banner */}
           <div style={s.goalCard}>
             <div style={s.goalLabel}>
-              <span>🏆 Weekly Application Goal</span>
-              <span style={{ color: goalPct >= 100 ? "#10b981" : "#6366f1", fontWeight: 700 }}>
+              <span>Weekly Application Goal</span>
+              <span style={{ color: "#1a1a1a", fontWeight: 700 }}>
                 {stats.weekly_progress} / {stats.goal_target} apps
               </span>
             </div>
             <div style={s.bar}>
-              <div style={s.fill(goalPct, goalPct >= 100 ? "#10b981" : "#6366f1")} />
+              <div style={s.fill(goalPct)} />
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
-              <div style={s.pctText}>{goalPct}% complete{goalPct >= 100 ? " 🎉" : ""}</div>
+              <div style={s.pctText}>{goalPct}% complete</div>
               {isEditingGoal ? (
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                   <span style={{ fontSize: 11, color: "#888" }}>Target:</span>
@@ -289,7 +290,7 @@ export default function Tracker() {
                   <button onClick={() => setIsEditingGoal(false)} style={{ fontSize: 11, padding: "2px 8px", background: "#fff", border: "1px solid #ddd", borderRadius: 4, cursor: "pointer" }}>Cancel</button>
                 </div>
               ) : (
-                <button onClick={() => setIsEditingGoal(true)} style={{ fontSize: 11, background: "none", border: "none", color: "#6366f1", cursor: "pointer", textDecoration: "underline" }}>
+                <button onClick={() => setIsEditingGoal(true)} style={{ fontSize: 11, background: "none", border: "none", color: "#555", cursor: "pointer", textDecoration: "underline" }}>
                   Change target
                 </button>
               )}
@@ -300,7 +301,7 @@ export default function Tracker() {
             {/* ── Custom Goals ── */}
             <div style={s.box}>
               <div style={s.boxHead}>
-                <span>🎯 My Goals</span>
+                <span>My Goals</span>
                 <button
                   onClick={() => setAddingGoal(!addingGoal)}
                   style={{ fontSize: 12, padding: "3px 10px", border: "1px solid #e5e5e5", borderRadius: 6, background: addingGoal ? "#111" : "#fff", color: addingGoal ? "#fff" : "#555", cursor: "pointer" }}
@@ -345,7 +346,7 @@ export default function Tracker() {
                         <div style={s.goalText(g.completed)}>{g.text}</div>
                         {g.deadline && (
                           <div style={s.goalDeadline(!g.completed && isOverdue(g.deadline))}>
-                            {!g.completed && isOverdue(g.deadline) ? "⚠️ Overdue · " : "🗓 Due "}
+                            {!g.completed && isOverdue(g.deadline) ? "Overdue \u00b7 " : "Due "}
                             {new Date(g.deadline + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                           </div>
                         )}
@@ -359,7 +360,7 @@ export default function Tracker() {
 
             {/* ── To-Do List ── */}
             <div style={s.box}>
-              <div style={s.boxHead}>✅ Today's Tasks</div>
+              <div style={s.boxHead}>Today's Tasks</div>
               <div style={s.todoList}>
                 {todos.length === 0 ? (
                   <div style={s.empty}>No tasks yet.</div>
@@ -427,7 +428,7 @@ export default function Tracker() {
             <div style={s.backdrop} onClick={() => setShowEventModal(false)}>
               <div style={s.modal} onClick={e => e.stopPropagation()}>
                 <div style={s.modalTitle}>
-                  📅 {selectedDate && new Date(selectedDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+                  {selectedDate && new Date(selectedDate + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                 </div>
 
                 {/* Existing events */}
@@ -435,11 +436,11 @@ export default function Tracker() {
                   <div style={{ marginBottom: 14, borderBottom: "1px solid #f0f0f0", paddingBottom: 10 }}>
                     {eventsMap[selectedDate].map(e => (
                       <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 13, marginBottom: 6 }}>
-                        <span style={{ color: e.event_type === "interview" ? "#b45309" : e.event_type === "deadline" ? "#1d4ed8" : "#555" }}>
-                          {e.event_type === "interview" ? "🟡" : e.event_type === "deadline" ? "🔵" : "⚪"} {e.title}
+                        <span style={{ color: "#555" }}>
+                          {e.title}
                         </span>
                         {String(e.id).startsWith("event_") && (
-                          <button onClick={() => removeCalendarEvent(e.id)} style={{ border: "none", background: "none", color: "#ef4444", cursor: "pointer", fontSize: 11 }}>
+                          <button onClick={() => removeCalendarEvent(e.id)} style={{ border: "none", background: "none", color: "#999", cursor: "pointer", fontSize: 11 }}>
                             remove
                           </button>
                         )}
@@ -457,9 +458,9 @@ export default function Tracker() {
                   style={s.modalInput}
                 />
                 <select value={eventType} onChange={e => setEventType(e.target.value)} style={s.modalSelect}>
-                  <option value="interview">🟡 Interview</option>
-                  <option value="deadline">🔵 Deadline</option>
-                  <option value="other">⚪ Other</option>
+                  <option value="interview">Interview</option>
+                  <option value="deadline">Deadline</option>
+                  <option value="other">Other</option>
                 </select>
                 <div style={s.modalBtns}>
                   <button onClick={addCalendarEvent} style={s.btnSubmit}>Add Event</button>

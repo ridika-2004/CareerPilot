@@ -1,3 +1,4 @@
+import os
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -6,6 +7,29 @@ from .services.extract_text import extract_text
 from .services.chunk_cv import chunk_cv
 from .services.embed_store import embed_and_store, ask_with_rag
 from .services.parse_cv import parse_cv_structured
+
+# Map file extensions to canonical MIME types
+EXT_TO_MIME = {
+    '.pdf': 'application/pdf',
+    '.doc': 'application/msword',
+    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+}
+ALLOWED_MIME_TYPES = set(EXT_TO_MIME.values())
+
+
+def resolve_file_type(file):
+    """Determine the canonical MIME type using content_type + filename extension fallback."""
+    content_type = file.content_type
+    if content_type in ALLOWED_MIME_TYPES:
+        return content_type
+
+    # Fallback: check file extension
+    _, ext = os.path.splitext(file.name or '')
+    ext = ext.lower()
+    if ext in EXT_TO_MIME:
+        return EXT_TO_MIME[ext]
+
+    return None
 
 
 class CVUploadView(APIView):
@@ -18,17 +42,16 @@ class CVUploadView(APIView):
         if not file:
             return Response({'error': 'No file uploaded'}, status=400)
 
-        allowed_types = [
-            'application/pdf',
-            'application/msword',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        ]
-        if file.content_type not in allowed_types:
-            return Response({'error': 'Only PDF and DOCX allowed'}, status=400)
+        resolved_type = resolve_file_type(file)
+        if not resolved_type:
+            return Response(
+                {'error': f'Unsupported file type ({file.content_type}). Only PDF and DOCX are allowed.'},
+                status=400
+            )
 
         try:
             file_bytes = file.read()
-            raw_text = extract_text(file_bytes, file.content_type)
+            raw_text = extract_text(file_bytes, resolved_type)
             chunks = chunk_cv(raw_text)
             stored = embed_and_store(chunks, user_id)
 

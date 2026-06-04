@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import API_URL from "../src/config";
 
-const API = "http://localhost:8000/assistant";
-import { useState, useEffect } from "react";
-import axios from "axios";
+const API = `${API_URL}/api/assistant`;
 
 const SUGGESTIONS = [
   "Am I ready for a data engineer role?",
@@ -139,12 +138,51 @@ const s = {
     borderRadius: 6,
     cursor: "pointer",
   },
+
+  suggestions: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 8,
+    padding: "0 16px 12px",
+  },
+
+  suggBtn: {
+    padding: "6px 10px",
+    border: "1px solid #ddd",
+    borderRadius: 6,
+    background: "#fff",
+    cursor: "pointer",
+    fontSize: 12,
+    color: "#333",
+  },
 };
+
+function TypingIndicator() {
+  return (
+    <span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+      {[0, 1, 2].map(i => (
+        <span
+          key={i}
+          style={{
+            width: 6, height: 6, borderRadius: "50%", background: "#aaa",
+            display: "inline-block",
+            animation: `bounce 1.2s ${i * 0.2}s infinite`,
+          }}
+        />
+      ))}
+      <style>{`@keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-5px)} }`}</style>
+    </span>
+  );
+}
 
 export default function Assistant() {
   const [sessions, setSessions] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [cvUploaded] = useState(() => localStorage.getItem("cv_uploaded") === "true");
+  const chatAreaRef = useRef(null);
+  const userId = localStorage.getItem("user_id") || "user_default";
 
   // -----------------------------
   // LOAD SESSIONS
@@ -231,22 +269,20 @@ export default function Assistant() {
   // -----------------------------
   // SEND MESSAGE
   // -----------------------------
-  const send = async () => {
-    if (!input.trim() || !activeId) return;
+  const send = async (text) => {
+    const msg = text || input;
+    if (!msg.trim() || !activeId) return;
 
-    const text = input;
     setInput("");
+    setLoading(true);
 
-    // user message
+    // add user message
     setSessions((prev) =>
       prev.map((s) =>
         s.id === activeId
           ? {
               ...s,
-              messages: [
-                ...s.messages,
-                { role: "user", content: text },
-              ],
+              messages: [...s.messages, { role: "user", content: msg }],
             }
           : s
       )
@@ -260,7 +296,8 @@ export default function Assistant() {
         },
         body: JSON.stringify({
           sessionId: activeId,
-          message: text,
+          message: msg,
+          user_id: userId,
         }),
       });
 
@@ -283,48 +320,19 @@ export default function Assistant() {
       );
     } catch (err) {
       console.error(err);
-  const [loading, setLoading] = useState(false);
-  const [cvUploaded, setCvUploaded] = useState(false);
-
-  useEffect(() => {
-    setCvUploaded(localStorage.getItem("cv_uploaded") === "true");
-  }, []);
-
-  const send = async (text) => {
-    const msg = text || input;
-    if (!msg.trim()) return;
-    setInput("");
-    const next = [...messages, { role: "user", content: msg }];
-    setMessages(next);
-    setLoading(true);
-
-    const userId = localStorage.getItem("user_id") || "user_default";
-
-    try {
-      const res = await axios.post("http://localhost:8000/api/cv/ask/", {
-        user_id: userId,
-        question: msg,
-      });
-      let reply = res.data.answer;
-      if (res.data.source_sections && res.data.source_sections.length > 0) {
-        const uniqueSections = [...new Set(res.data.source_sections)].map(s => s.toUpperCase());
-        reply += `\n\n*(Grounded in sections: ${uniqueSections.join(", ")})*`;
-      }
-      setMessages([...next, { role: "assistant", content: reply }]);
-    } catch (err) {
-      setMessages([
-        ...next,
-        {
-          role: "assistant",
-          content: "Sorry, I had trouble connecting to the career pilot agent: " + (err.response?.data?.error || err.message),
-        },
-      ]);
     } finally {
       setLoading(false);
     }
   };
 
-  const activeSession = sessions.find((s) => s.id === activeId);
+  // Auto-scroll to latest message
+  useEffect(() => {
+    if (chatAreaRef.current) {
+      chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight;
+    }
+  }, [sessions, loading]);
+
+  const activeSession = sessions.find((sess) => sess.id === activeId);
 
   return (
     <div style={s.container}>
@@ -333,21 +341,6 @@ export default function Assistant() {
         <button style={s.newChatBtn} onClick={createSession}>
           + New Chat
         </button>
-    <div>
-      <div style={s.h1}>AI Assistant</div>
-      <div style={s.sub}>Ask anything about your career. Responses are grounded in your CV.</div>
-
-      {!cvUploaded && (
-        <div style={{ background: "#fff8e1", border: "1px solid #ffe082", borderRadius: 6, padding: "12px 16px", marginBottom: 16, fontSize: 13, color: "#b78103" }}>
-          ⚠️ No CV has been uploaded yet. Grounded career analysis will not work until you upload a PDF or DOCX file on the <strong>Profile</strong> page.
-        </div>
-      )}
-
-      <div style={s.suggestions}>
-        {SUGGESTIONS.map((q) => (
-          <button key={q} style={s.suggBtn} onClick={() => send(q)}>{q}</button>
-        ))}
-      </div>
 
         <div style={s.sessionList}>
           {sessions.map((sesh) => (
@@ -389,11 +382,24 @@ export default function Assistant() {
           <div style={s.sub}>Ask anything about your career</div>
         </div>
 
-        <div style={s.chatArea}>
+        {!cvUploaded && (
+          <div style={{ background: "#fafafa", border: "1px solid #e5e5e5", borderRadius: 6, padding: "12px 16px", margin: "12px 16px 0", fontSize: 13, color: "#555" }}>
+            No CV uploaded yet. Grounded career analysis requires a CV upload on the Profile page.
+          </div>
+        )}
+
+        <div ref={chatAreaRef} style={s.chatArea}>
           {activeSession?.messages.length === 0 && (
-            <div style={{ color: "#aaa", textAlign: "center" }}>
-              Start a conversation
-            </div>
+            <>
+              <div style={{ color: "#aaa", textAlign: "center", marginBottom: 16 }}>
+                Start a conversation or try a suggestion:
+              </div>
+              <div style={s.suggestions}>
+                {SUGGESTIONS.map((q) => (
+                  <button key={q} style={s.suggBtn} onClick={() => send(q)}>{q}</button>
+                ))}
+              </div>
+            </>
           )}
 
           {activeSession?.messages.map((m, i) => (
@@ -409,6 +415,14 @@ export default function Assistant() {
               </div>
             </div>
           ))}
+
+          {loading && (
+            <div style={s.msg("assistant")}>
+              <div style={s.bubble("assistant")}>
+                <TypingIndicator />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* INPUT */}
@@ -421,8 +435,8 @@ export default function Assistant() {
             placeholder="Type a message..."
           />
 
-          <button style={s.btn} onClick={send}>
-            Send
+          <button style={s.btn} onClick={() => send()} disabled={loading}>
+            {loading ? "..." : "Send"}
           </button>
         </div>
       </div>

@@ -5,7 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import ChatSession
 from .models import Message
 
-from .services import generate_reply
+from .services import generate_reply, hunt_jobs
 
 
 @csrf_exempt
@@ -123,6 +123,7 @@ def send_message(request):
 
     session_id = body.get("sessionId")
     message = body.get("message")
+    user_id = body.get("user_id")
 
     if not session_id or not message:
         return JsonResponse(
@@ -155,7 +156,8 @@ def send_message(request):
 
     try:
         reply = generate_reply(
-            session.messages
+            session.messages,
+            user_id=user_id
         )
     except Exception as e:
         return JsonResponse(
@@ -180,3 +182,49 @@ def send_message(request):
             "content": reply
         }
     })
+
+
+@csrf_exempt
+def hunt_jobs_view(request):
+    if request.method != "POST":
+        return JsonResponse(
+            {"error": "POST only"},
+            status=405
+        )
+
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {"error": "Invalid JSON"},
+            status=400
+        )
+
+    query = body.get("query")
+    user_id = body.get("user_id")
+
+    if not query:
+        return JsonResponse(
+            {"error": "query is required"},
+            status=400
+        )
+
+    if not user_id:
+        return JsonResponse(
+            {"error": "user_id is required"},
+            status=400
+        )
+
+    try:
+        result = hunt_jobs(query, user_id)
+        return JsonResponse(result)
+    except ValueError as e:
+        return JsonResponse(
+            {"error": str(e)},
+            status=400
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"error": str(e)},
+            status=500
+        )

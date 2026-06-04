@@ -1,19 +1,36 @@
 import { useState } from "react";
 import JobCard from "../components/JobCard";
+import API_URL from "../src/config";
 
-const MOCK_RESULTS = [
-  { role: "ML Engineer Intern", company: "Brain Labs BD", location: "Dhaka", salary: "BDT 25k–35k/mo", deadline: "Jun 30", fit: 84, reason: "Matches your Python, TensorFlow skills and 2 ML project experiences. Location matches. Junior-level aligns with your 1 YoE." },
-  { role: "Data Scientist", company: "DataMind", location: "Dhaka (Remote)", salary: "BDT 40k–60k/mo", deadline: "Jul 5", fit: 71, reason: "Strong overlap on data analysis and pandas. Missing: production ML deployment experience listed in JD." },
-  { role: "Backend Engineer", company: "ShopX", location: "Dhaka", salary: "BDT 50k–70k/mo", deadline: "Jun 25", fit: 38, reason: "Low fit — JD requires 3+ years Node.js. Your CV shows Django/Python primarily with no Node experience." },
-];
+const API = `${API_URL}/api/assistant`;
 
 const s = {
   h1: { fontSize: 20, fontWeight: 700, marginBottom: 4 },
   sub: { color: "#888", fontSize: 13, marginBottom: 24 },
   row: { display: "flex", gap: 8, marginBottom: 24 },
   input: { flex: 1, border: "1px solid #ddd", borderRadius: 5, padding: "9px 12px", fontSize: 13, fontFamily: "inherit", outline: "none" },
-  btn: { border: "1px solid #1a1a1a", borderRadius: 5, padding: "9px 20px", background: "#1a1a1a", color: "#fff", cursor: "pointer", fontSize: 13, fontFamily: "inherit" },
+  btn: (disabled) => ({
+    border: "1px solid #1a1a1a",
+    borderRadius: 5,
+    padding: "9px 20px",
+    background: disabled ? "#888" : "#1a1a1a",
+    color: "#fff",
+    cursor: disabled ? "not-allowed" : "pointer",
+    fontSize: 13,
+    fontFamily: "inherit",
+  }),
   loading: { color: "#888", fontSize: 13 },
+  error: { color: "#999", fontSize: 13, padding: "12px 0" },
+  empty: { color: "#888", fontSize: 13, textAlign: "center", padding: "32px 0" },
+};
+
+const getUserId = () => {
+  let id = localStorage.getItem("user_id");
+  if (!id) {
+    id = "user_" + Math.random().toString(36).substring(2, 9);
+    localStorage.setItem("user_id", id);
+  }
+  return id;
 };
 
 export default function JobHunter() {
@@ -21,16 +38,39 @@ export default function JobHunter() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [error, setError] = useState("");
 
-  const search = () => {
-    if (!query.trim()) return;
+  const search = async () => {
+    if (!query.trim() || loading) return;
+
     setLoading(true);
     setSearched(true);
-    // Simulate API call
-    setTimeout(() => {
-      setResults(MOCK_RESULTS);
+    setError("");
+    setResults([]);
+
+    try {
+      const res = await fetch(`${API}/hunt/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: query.trim(),
+          user_id: getUserId(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Something went wrong. Please try again.");
+        return;
+      }
+
+      setResults(data.jobs || []);
+    } catch {
+      setError("Network error. Make sure the server is running.");
+    } finally {
       setLoading(false);
-    }, 1200);
+    }
   };
 
   return (
@@ -45,13 +85,22 @@ export default function JobHunter() {
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && search()}
           placeholder='e.g. "Find me ML internships in Dhaka open this month"'
+          disabled={loading}
         />
-        <button style={s.btn} onClick={search}>Search</button>
+        <button style={s.btn(loading)} onClick={search} disabled={loading}>
+          {loading ? "Hunting..." : "Search"}
+        </button>
       </div>
 
       {loading && <div style={s.loading}>Hunting jobs and scoring fit against your CV...</div>}
 
-      {!loading && searched && (
+      {error && <div style={s.error}>{error}</div>}
+
+      {!loading && searched && !error && results.length === 0 && (
+        <div style={s.empty}>No jobs found matching your profile. Try a broader query or upload your CV.</div>
+      )}
+
+      {!loading && searched && !error && results.length > 0 && (
         <div>
           <div style={{ color: "#888", fontSize: 12, marginBottom: 12 }}>{results.length} results — sorted by fit</div>
           {results.map((job, i) => <JobCard key={i} job={job} />)}

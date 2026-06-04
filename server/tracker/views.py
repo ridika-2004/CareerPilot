@@ -38,9 +38,17 @@ def get_skills_count(user_id):
         skills_count = 0
         if skills_data and skills_data["documents"]:
             for doc in skills_data["documents"]:
-                # Split by commas, newlines, or bullet points to approximate skill count
-                parts = [p.strip() for p in doc.replace("\n", ",").replace("•", ",").replace("·", ",").split(",") if p.strip()]
-                skills_count += len(parts)
+                # Normalize separators: newlines, bullets, pipes, semicolons, commas
+                normalized = doc.replace("\n", ",").replace("•", ",").replace("·", ",")
+                normalized = normalized.replace("|", ",").replace(";", ",")
+                parts = [p.strip() for p in normalized.split(",") if p.strip()]
+                # Filter out section header lines like "SKILLS", "Technical Skills", etc.
+                header_words = {"skills", "technical", "tools", "languages", "technologies", "competencies", "stack"}
+                filtered = [
+                    p for p in parts
+                    if len(p) > 1 and not all(w.lower() in header_words for w in p.split())
+                ]
+                skills_count += len(filtered)
         return skills_count
     except Exception as e:
         print("Error getting skills count from ChromaDB:", e)
