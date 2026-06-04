@@ -18,8 +18,7 @@
 Built for **Codesprint 2026** · Powered by [Poridhi.io](https://poridhi.io)
 
 
-<!-- Replace with your actual banner/screenshot -->
-![CareerPilot Banner](https://placehold.co/1200x400)
+![CareerPilot Landing Page](client/src/assets/landing.png)
 
 
 ## Overview
@@ -37,8 +36,7 @@ Every AI response is grounded in **your actual CV**, not hallucinated generic pr
 ### Pillar 1 — Job Hunter Agent
 
 
-<!-- Replace with a screenshot of the job search results -->
-![Job Hunter](https://placehold.co/800x400)
+![Job Hunter](client/src/assets/job%20hunter.png)
 
 
 - Natural language job search: *"Find me ML internships in Dhaka open this month"*
@@ -49,8 +47,7 @@ Every AI response is grounded in **your actual CV**, not hallucinated generic pr
 ### Pillar 2 — Profile & Resume Intelligence (RAG Core)
 
 
-<!-- Replace with a screenshot of the CV upload / profile page -->
-![Resume Intelligence](https://placehold.co/800x400)
+![Resume Intelligence](client/src/assets/profile.png)
 
 
 - Upload a PDF/DOCX CV or build one directly in the platform
@@ -62,8 +59,7 @@ Every AI response is grounded in **your actual CV**, not hallucinated generic pr
 ### Pillar 3 — Personal AI Assistant
 
 
-<!-- Replace with a screenshot of the chat interface -->
-![AI Assistant](https://placehold.co/800x400)
+![AI Assistant](client/src/assets/ai_assistent.png)
 
 
 - Conversational interface with full context of your profile
@@ -77,8 +73,7 @@ Every AI response is grounded in **your actual CV**, not hallucinated generic pr
 ### Pillar 4 — Productivity & Progress Tracker
 
 
-<!-- Replace with a screenshot of the tracker / dashboard -->
-![Tracker](https://placehold.co/800x400)
+![Tracker](client/src/assets/tracker.png)
 
 
 - **Calendar & To-Do**: Deadline reminders linked to career goals
