@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 
 const nudgeAccent = {
-  warning: { bg: "#fff8e1", border: "#ffe082", icon: "#f59e0b", dot: "#f59e0b" },
-  info:    { bg: "#e8f4ff", border: "#bfdbfe", icon: "#3b82f6", dot: "#3b82f6" },
-  success: { bg: "#ecfdf5", border: "#a7f3d0", icon: "#10b981", dot: "#10b981" },
+  warning: { bg: "#fafafa", border: "#e0e0e0", dot: "#555" },
+  info:    { bg: "#fafafa", border: "#e0e0e0", dot: "#555" },
+  success: { bg: "#fafafa", border: "#e0e0e0", dot: "#555" },
 };
 
 const NUDGE_NAV = {
@@ -16,18 +16,17 @@ const NUDGE_NAV = {
 };
 
 const s = {
-  wrap: { fontFamily: "'Inter', system-ui, sans-serif" },
+  wrap: { fontFamily: "'Roboto Mono', monospace" },
   h1: { fontSize: 22, fontWeight: 700, marginBottom: 4, color: "#111" },
   sub: { color: "#888", fontSize: 13, marginBottom: 28 },
   grid: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 32 },
-  stat: (color) => ({
+  stat: {
     background: "#fff",
     border: "1px solid #e5e5e5",
-    borderRadius: 10,
+    borderRadius: 8,
     padding: "20px 20px 16px",
-    borderTop: `3px solid ${color}`,
     transition: "box-shadow 0.2s",
-  }),
+  },
   statNum: { fontSize: 32, fontWeight: 800, lineHeight: 1, color: "#111" },
   statLabel: { color: "#888", fontSize: 12, marginTop: 6 },
   section: { marginBottom: 28 },
@@ -51,19 +50,19 @@ const s = {
     marginTop: 1,
   }),
   nudgeText: { fontSize: 13, color: "#333", flex: 1, lineHeight: 1.5 },
-  nudgeAction: (type) => ({
+  nudgeAction: {
     fontSize: 11,
-    border: `1px solid ${nudgeAccent[type]?.border || "#ccc"}`,
+    border: "1px solid #ccc",
     borderRadius: 4,
     padding: "3px 10px",
     background: "none",
     cursor: "pointer",
-    color: nudgeAccent[type]?.icon || "#555",
+    color: "#1a1a1a",
     fontFamily: "inherit",
     whiteSpace: "nowrap",
     alignSelf: "center",
     fontWeight: 600,
-  }),
+  },
   dismissBtn: {
     background: "none", border: "none", color: "#bbb", cursor: "pointer",
     fontSize: 14, padding: 0, alignSelf: "center", marginLeft: 4,
@@ -71,10 +70,10 @@ const s = {
   progressRow: { marginBottom: 14 },
   progressLabel: { display: "flex", justifyContent: "space-between", fontSize: 13, color: "#444", marginBottom: 6 },
   bar: { height: 7, background: "#ebebeb", borderRadius: 4, overflow: "hidden" },
-  fill: (pct, color) => ({
+  fill: (pct) => ({
     height: "100%",
     width: `${pct}%`,
-    background: color || "#111",
+    background: "#1a1a1a",
     borderRadius: 4,
     transition: "width 0.6s ease",
   }),
@@ -85,8 +84,7 @@ const s = {
   empty: { color: "#bbb", fontSize: 13, padding: "12px 0", textAlign: "center" },
 };
 
-const STAT_COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ef4444"];
-const STAT_EMOJIS = ["📨", "🎯", "🧠", "🔥"];
+
 
 export default function Dashboard({ setPage }) {
   const [stats, setStats] = useState({
@@ -159,10 +157,10 @@ export default function Dashboard({ setPage }) {
     : 0;
 
   const progressList = [
-    { label: `Weekly job goal: ${stats.weekly_progress} / ${stats.goal_target} applications`, pct: goalPct, color: "#6366f1" },
-    { label: "Interview conversion rate", pct: stats.applications_sent > 0 ? Math.min(100, Math.round((stats.interviews_scheduled / stats.applications_sent) * 100)) : 0, color: "#f59e0b" },
-    { label: "Skills tracked", pct: Math.min(100, stats.skills_added * 5), color: "#10b981" },
-    { label: "Roadmap progress", pct: roadmapPct, color: "#8b5cf6" },
+    { label: `Weekly job goal: ${stats.weekly_progress} / ${stats.goal_target} applications`, pct: goalPct },
+    { label: "Interview conversion rate", pct: stats.applications_sent > 0 ? Math.min(100, Math.round((stats.interviews_scheduled / stats.applications_sent) * 100)) : 0 },
+    { label: "Skills tracked", pct: Math.min(100, stats.skills_added * 5) },
+    { label: "Roadmap progress", pct: roadmapPct },
   ];
 
   const visibleNudges = nudges.filter((_, i) => !dismissed.has(i));
@@ -181,10 +179,9 @@ export default function Dashboard({ setPage }) {
 
       {/* Stat Cards */}
       <div style={s.grid}>
-        {statsList.map((st, i) => (
-          <div key={st.label} style={s.stat(STAT_COLORS[i])}>
-            <div style={{ fontSize: 22, marginBottom: 6 }}>{STAT_EMOJIS[i]}</div>
-            <div style={s.statNum}>{loading ? "—" : st.num}</div>
+        {statsList.map((st) => (
+          <div key={st.label} style={s.stat}>
+            <div style={s.statNum}>{loading ? "\u2014" : st.num}</div>
             <div style={s.statLabel}>{st.label}</div>
           </div>
         ))}
@@ -193,22 +190,21 @@ export default function Dashboard({ setPage }) {
       {/* AI Nudges */}
       <div style={s.section}>
         <div style={s.sectionHead}>
-          <span>🤖</span> AI Nudges
+          AI Nudges
         </div>
         {nudgesLoading ? (
-          <div style={s.loader}>⏳ Analyzing your progress...</div>
+          <div style={s.loader}>Analyzing your progress...</div>
         ) : visibleNudges.length === 0 ? (
-          <div style={s.empty}>All caught up! 🎉 No nudges right now.</div>
+          <div style={s.empty}>All caught up. No nudges right now.</div>
         ) : (
           visibleNudges.map((nudge, idx) => {
             const originalIdx = nudges.indexOf(nudge);
             return (
               <div key={idx} style={s.nudgeCard(nudge.type)}>
-                <span style={s.nudgeIcon(nudge.type)}>{nudge.icon}</span>
                 <span style={s.nudgeText}>{nudge.message}</span>
                 {nudge.action && (
                   <button
-                    style={s.nudgeAction(nudge.type)}
+                    style={s.nudgeAction}
                     onClick={() => handleNudgeAction(nudge.action)}
                   >
                     {nudge.action}
@@ -238,7 +234,7 @@ export default function Dashboard({ setPage }) {
       {/* Progress Bars */}
       <div style={s.section}>
         <div style={s.sectionHead}>
-          <span>📈</span> Progress Overview
+          Progress Overview
         </div>
         {progressList.map((p) => (
           <div key={p.label} style={s.progressRow}>
@@ -247,7 +243,7 @@ export default function Dashboard({ setPage }) {
               <span style={{ fontWeight: 600 }}>{loading ? "—" : `${p.pct}%`}</span>
             </div>
             <div style={s.bar}>
-              <div style={s.fill(loading ? 0 : p.pct, p.color)} />
+              <div style={s.fill(loading ? 0 : p.pct)} />
             </div>
           </div>
         ))}

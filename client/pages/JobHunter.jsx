@@ -19,7 +19,7 @@ const s = {
     fontFamily: "inherit",
   }),
   loading: { color: "#888", fontSize: 13 },
-  error: { color: "#d93025", fontSize: 13, padding: "12px 0" },
+  error: { color: "#999", fontSize: 13, padding: "12px 0" },
   empty: { color: "#888", fontSize: 13, textAlign: "center", padding: "32px 0" },
 };
 

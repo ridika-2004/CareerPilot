@@ -382,7 +382,7 @@ export default function Assistant() {
         </div>
 
         {!cvUploaded && (
-          <div style={{ background: "#fff8e1", border: "1px solid #ffe082", borderRadius: 6, padding: "12px 16px", margin: "12px 16px 0", fontSize: 13, color: "#b78103" }}>
+          <div style={{ background: "#fafafa", border: "1px solid #e5e5e5", borderRadius: 6, padding: "12px 16px", margin: "12px 16px 0", fontSize: 13, color: "#555" }}>
             No CV uploaded yet. Grounded career analysis requires a CV upload on the Profile page.
           </div>
         )}
@@ -435,7 +435,7 @@ export default function Assistant() {
           />
 
           <button style={s.btn} onClick={() => send()} disabled={loading}>
-            {loading ? "⋯" : "Send"}
+            {loading ? "..." : "Send"}
           </button>
         </div>
       </div>

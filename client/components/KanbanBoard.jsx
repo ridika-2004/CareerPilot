@@ -3,8 +3,8 @@ import axios from "axios";
 
 const COLS = ["Applied", "Interviewing", "Offer", "Rejected"];
 
-const colColor = { Applied: "#e8f0ff", Interviewing: "#fff8e0", Offer: "#e6f7ee", Rejected: "#fdecea" };
-const colBorder = { Applied: "#b3c9ff", Interviewing: "#ffe699", Offer: "#99dbb4", Rejected: "#f5b3ae" };
+const colColor = { Applied: "#fafafa", Interviewing: "#fafafa", Offer: "#fafafa", Rejected: "#fafafa" };
+const colBorder = { Applied: "#e5e5e5", Interviewing: "#e5e5e5", Offer: "#e5e5e5", Rejected: "#e5e5e5" };
 
 const s = {
   board: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 },

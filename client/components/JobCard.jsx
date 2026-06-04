@@ -8,8 +8,8 @@ const s = {
   company: { color: "#555", fontSize: 13, marginTop: 1 },
   scoreWrap: { display: "flex", alignItems: "center", gap: 8, flexShrink: 0 },
   fitBar: { width: 48, height: 6, background: "#eee", borderRadius: 3, overflow: "hidden" },
-  fitFill: (v) => ({ height: "100%", width: `${v}%`, background: v >= 70 ? "#10b981" : v >= 40 ? "#f59e0b" : "#ccc", borderRadius: 3 }),
-  score: (v) => ({ fontWeight: 700, fontSize: 13, color: v >= 70 ? "#2d6a4f" : v >= 40 ? "#b5572a" : "#999" }),
+  fitFill: (v) => ({ height: "100%", width: `${v}%`, background: "#1a1a1a", borderRadius: 3 }),
+  score: { fontWeight: 700, fontSize: 13, color: "#555" },
   meta: { display: "flex", gap: 16, color: "#888", fontSize: 12, marginBottom: 8, flexWrap: "wrap" },
   reason: { fontSize: 12, color: "#555", lineHeight: 1.6, borderTop: "1px solid #f0f0f0", paddingTop: 10, marginTop: 10 },
   reasonLabel: { fontWeight: 600, color: "#444" },
@@ -17,13 +17,13 @@ const s = {
   applyBtn: {
     padding: "6px 14px", border: "none", borderRadius: 5,
     background: "#1a1a1a", color: "#fff", cursor: "pointer",
-    fontSize: 12, fontFamily: "'Inter', system-ui, sans-serif", fontWeight: 600,
+    fontSize: 12, fontFamily: "'Roboto Mono', monospace", fontWeight: 600,
     transition: "background 0.15s",
   },
   appliedBtn: {
-    padding: "6px 14px", border: "1px solid #10b981", borderRadius: 5,
-    background: "#ecfdf5", color: "#10b981", cursor: "default",
-    fontSize: 12, fontFamily: "'Inter', system-ui, sans-serif", fontWeight: 600,
+    padding: "6px 14px", border: "1px solid #555", borderRadius: 5,
+    background: "#f5f5f5", color: "#555", cursor: "default",
+    fontSize: 12, fontFamily: "'Roboto Mono', monospace", fontWeight: 600,
   },
 };
 
@@ -61,13 +61,13 @@ export default function JobCard({ job }) {
           <div style={s.fitBar}>
             <div style={s.fitFill(job.fit)} />
           </div>
-          <div style={s.score(job.fit)}>{job.fit}% fit</div>
+          <div style={s.score}>{job.fit}% fit</div>
         </div>
       </div>
       <div style={s.meta}>
-        <span>📍 {job.location}</span>
-        {job.salary && <span>💰 {job.salary}</span>}
-        {job.deadline && <span>📅 Due {job.deadline}</span>}
+        <span>{job.location}</span>
+        {job.salary && <span>{job.salary}</span>}
+        {job.deadline && <span>Due {job.deadline}</span>}
       </div>
       {job.reason && (
         <div style={s.reason}>

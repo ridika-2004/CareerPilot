@@ -48,7 +48,7 @@ export default function CVUpload({ userId }) {
 
   return (
     <div style={{ maxWidth: 600, margin: '0 auto', padding: 24 }}>
-      <h2>📄 Upload Your CV</h2>
+      <h2>Upload Your CV</h2>
 
       <input
         type="file"
@@ -62,15 +62,15 @@ export default function CVUpload({ userId }) {
       {status && <p>{status}</p>}
 
       {result && (
-        <div style={{ background: '#e8f5e9', padding: 12, borderRadius: 8 }}>
-          <p>✅ {result.chunks_stored} chunks stored</p>
-          <p>📂 Sections: {result.sections.join(', ')}</p>
+        <div style={{ background: '#fafafa', padding: 12, borderRadius: 8, border: '1px solid #e5e5e5' }}>
+          <p>{result.chunks_stored} chunks stored</p>
+          <p>Sections: {result.sections.join(', ')}</p>
         </div>
       )}
 
       {result && (
         <div style={{ marginTop: 32 }}>
-          <h3>💬 Ask about your CV</h3>
+          <h3>Ask about your CV</h3>
           <input
             style={{ width: '100%', padding: 8 }}
             placeholder="Am I ready for a data engineer role?"

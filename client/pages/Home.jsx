@@ -1,35 +1,32 @@
 const s = {
-  wrap: { fontFamily: "'Inter', system-ui, sans-serif", maxWidth: 700 },
+  wrap: { fontFamily: "'Roboto Mono', monospace", maxWidth: 700 },
   hero: {
-    fontSize: 28, fontWeight: 800, lineHeight: 1.25, color: "#111", marginBottom: 12,
+    fontSize: 28, fontWeight: 700, lineHeight: 1.25, color: "#1a1a1a", marginBottom: 12,
     letterSpacing: "-0.5px",
   },
-  heroAccent: { color: "#6366f1" },
-  sub: { fontSize: 14, color: "#666", lineHeight: 1.7, marginBottom: 32 },
+  sub: { fontSize: 14, color: "#555", lineHeight: 1.7, marginBottom: 32 },
   grid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 32 },
-  card: (color) => ({
+  card: {
     background: "#fff",
     border: "1px solid #e5e5e5",
-    borderRadius: 10,
+    borderRadius: 8,
     padding: "20px 18px",
-    borderLeft: `4px solid ${color}`,
     cursor: "pointer",
     transition: "box-shadow 0.15s, transform 0.15s",
-  }),
-  cardIcon: { fontSize: 24, marginBottom: 8 },
-  cardTitle: { fontWeight: 700, fontSize: 14, color: "#111", marginBottom: 4 },
-  cardDesc: { fontSize: 12, color: "#666", lineHeight: 1.6 },
-  tipsWrap: { background: "#fff", border: "1px solid #e5e5e5", borderRadius: 10, padding: "20px 22px" },
-  tipsHead: { fontWeight: 700, fontSize: 14, marginBottom: 12, color: "#111" },
+  },
+  cardTitle: { fontWeight: 600, fontSize: 14, color: "#1a1a1a", marginBottom: 6 },
+  cardDesc: { fontSize: 12, color: "#555", lineHeight: 1.6 },
+  tipsWrap: { background: "#fff", border: "1px solid #e5e5e5", borderRadius: 8, padding: "20px 22px" },
+  tipsHead: { fontWeight: 600, fontSize: 14, marginBottom: 12, color: "#1a1a1a" },
   tipItem: { display: "flex", gap: 10, marginBottom: 10, fontSize: 13, color: "#444", lineHeight: 1.6 },
-  tipNum: { fontWeight: 700, color: "#6366f1", flexShrink: 0 },
+  tipNum: { fontWeight: 600, color: "#1a1a1a", flexShrink: 0 },
 };
 
 const PILLARS = [
-  { icon: "🔍", title: "Job Hunter", desc: "Search in plain English. AI finds, filters, and scores jobs against your CV.", color: "#6366f1", page: "jobs" },
-  { icon: "👤", title: "Profile & CV Intelligence", desc: "Upload your CV — it's semantically indexed and queried by every agent.", color: "#f59e0b", page: "profile" },
-  { icon: "🤖", title: "AI Assistant", desc: "Ask anything about your career. Get grounded answers from your real CV data.", color: "#10b981", page: "assistant" },
-  { icon: "📋", title: "Tracker & Goals", desc: "Kanban board, calendar, goals, to-dos, and AI nudges to stay on track.", color: "#ef4444", page: "tracker" },
+  { title: "Job Hunter", desc: "Search in plain English. AI finds, filters, and scores jobs against your CV.", page: "jobs" },
+  { title: "Profile & CV Intelligence", desc: "Upload your CV — semantically indexed and queried by every agent.", page: "profile" },
+  { title: "AI Assistant", desc: "Ask anything about your career. Get grounded answers from your real CV data.", page: "assistant" },
+  { title: "Tracker & Goals", desc: "Kanban board, calendar, goals, to-dos, and AI nudges to stay on track.", page: "tracker" },
 ];
 
 const TIPS = [
@@ -43,7 +40,7 @@ export default function Home({ setPage }) {
   return (
     <div style={s.wrap}>
       <div style={s.hero}>
-        Welcome to <span style={s.heroAccent}>CareerPilot</span>
+        Welcome to CareerPilot
       </div>
       <div style={s.sub}>
         Your agentic career co-pilot. Four AI-powered pillars work together to hunt jobs,
@@ -54,12 +51,11 @@ export default function Home({ setPage }) {
         {PILLARS.map((p) => (
           <div
             key={p.title}
-            style={s.card(p.color)}
+            style={s.card}
             onClick={() => setPage?.(p.page)}
-            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.07)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.06)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "none"; }}
           >
-            <div style={s.cardIcon}>{p.icon}</div>
             <div style={s.cardTitle}>{p.title}</div>
             <div style={s.cardDesc}>{p.desc}</div>
           </div>

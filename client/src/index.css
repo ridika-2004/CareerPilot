@@ -12,7 +12,7 @@ html {
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Roboto Mono', monospace;
   background: #f7f6f3;
   color: #1a1a1a;
   line-height: 1.5;

@@ -6,5 +6,5 @@ urlpatterns = [
     path('api/assistant/', include('assistant.urls')),
     path('api/cv/', include('cv.urls')),
     path('api/tracker/', include('tracker.urls')),
-    # path('api/users/', include('users.urls')),
+    path('api/users/', include('users.urls')),
 ]
