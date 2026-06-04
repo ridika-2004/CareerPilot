@@ -24,21 +24,34 @@ def embed_and_store(chunks, user_id):
     if existing["ids"]:
         collection.delete(ids=existing["ids"])
 
+    stored = []
+    errors = []
+
     for i, chunk in enumerate(chunks):
-        response = openai_client.embeddings.create(
-            model="gemini-embedding-001",
-            input=chunk["content"]
-        )
-        embedding = response.data[0].embedding
+        try:
+            response = openai_client.embeddings.create(
+                model="gemini-embedding-001",
+                input=chunk["content"]
+            )
+            embedding = response.data[0].embedding
 
-        collection.add(
-            ids=[f"{user_id}_{i}"],
-            embeddings=[embedding],
-            documents=[chunk["content"]],
-            metadatas=[{"user_id": user_id, "section": chunk["section"]}]
+            collection.add(
+                ids=[f"{user_id}_{i}"],
+                embeddings=[embedding],
+                documents=[chunk["content"]],
+                metadatas=[{"user_id": user_id, "section": chunk["section"]}]
+            )
+            stored.append(chunk)
+        except Exception as e:
+            print(f"Error embedding chunk {i} ({chunk['section']}): {e}")
+            errors.append(str(e))
+
+    if not stored:
+        raise ValueError(
+            f"Failed to embed any chunks. Errors: {'; '.join(errors) if errors else 'Unknown error'}"
         )
 
-    return chunks
+    return stored
 
 
 def query_cv(user_id, question, top_k=5):

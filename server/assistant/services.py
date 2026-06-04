@@ -1,6 +1,8 @@
 import os
+import json
 from google import genai
 from dotenv import load_dotenv
+from cv.services.embed_store import query_cv, collection as cv_collection
 
 load_dotenv()
 
@@ -9,39 +11,156 @@ client = genai.Client(
 )
 
 SYSTEM_PROMPT = """
-You are a career assistant AI.
+You are CareerPilot — a deeply personalized AI career assistant.
 
 You MUST follow these rules strictly:
 
-1. Always ground answers in the user's CV context.
-2. If user asks: "Am I ready for a data engineer role?"
-   → Give verdict + reasoning + gaps + improvement plan.
+1. ALWAYS ground your answers in the user's real CV context provided below. Never fabricate experience, skills, or projects they don't have.
+2. If something is NOT in their CV, say so honestly and suggest how to build it.
 
-3. If user asks: "What skills am I missing for a Google internship?"
-   → Benchmark comparison + missing skills.
+3. If user asks: "Am I ready for a data engineer role?" or similar readiness question:
+   → Give a clear VERDICT (ready / not yet / almost ready)
+   → Reasoning grounded in their specific CV (skills, experience, projects)
+   → Concrete gaps (missing skills, missing experience types)
+   → Actionable improvement plan with realistic timelines
 
-4. If user asks: "Build me a 3-month roadmap to become job-ready"
-   → Structured weekly plan.
+4. If user asks: "What skills am I missing for a Google internship?" or similar gap analysis:
+   → Benchmark what top companies typically require
+   → Compare against the user's actual CV
+   → List exactly which skills/experience are missing
+   → Suggest specific resources (courses, projects, certifications) to fill each gap
 
-5. If user asks: "Draft a cover letter for this job posting"
-   → Personalized cover letter using user's experience.
+5. If user asks: "Build me a 3-month roadmap to become job-ready":
+   → Create a structured weekly plan (Week 1–12)
+   → Each week should have clear learning goals, resources, and deliverables
+   → Reference the user's existing skills as a starting point
+   → Include milestones and checkpoints
 
-6. Be concise, structured, and professional.
-7. Always respond in Markdown.
-8. Do NOT use LaTeX or code blocks.
-9. no upload or download links, only text-based responses.
+6. If user asks: "Draft a cover letter for this job posting":
+   → Write a personalized cover letter that references the user's ACTUAL experience, projects, and skills
+   → Match the job requirements to what's on their CV
+   → Be professional, concise, and compelling — no generic fluff
+
+7. For any other career question — answer using their CV as the primary evidence base.
+
+8. Be concise, structured with headings/bullets, and professional.
+9. Always respond in Markdown.
+10. Do NOT use LaTeX or code blocks.
+11. No upload or download links, only text-based responses.
 """
 
-def generate_reply(messages):
-    conversation_text = SYSTEM_PROMPT + "\n\nConversation:\n"
 
+def get_cv_context(user_id):
+    """Retrieve CV context from ChromaDB for a user. Returns formatted string or None."""
+    try:
+        cv_chunks = query_cv(user_id, "skills experience education projects summary", top_k=10)
+        if not cv_chunks:
+            return None
+        return "\n\n---\n\n".join(
+            f"[{c['section'].upper()}]\n{c['content']}" for c in cv_chunks
+        )
+    except Exception as e:
+        print(f"Error retrieving CV context for user {user_id}: {e}")
+        return None
+
+
+def generate_reply(messages, user_id=None):
+    cv_context = None
+    if user_id:
+        cv_context = get_cv_context(user_id)
+
+    prompt = SYSTEM_PROMPT
+    if cv_context:
+        prompt += f"\n\nUSER'S CV (retrieved from vector database):\n{cv_context}\n"
+    else:
+        prompt += "\n\nNote: No CV has been uploaded yet. Advise the user to upload their CV on the Profile page for fully personalized responses."
+
+    prompt += "\n\nConversation:\n"
     for msg in messages:
         role = "User" if msg.role == "user" else "Assistant"
-        conversation_text += f"{role}: {msg.content}\n"
+        prompt += f"{role}: {msg.content}\n"
 
     response = client.models.generate_content(
         model="gemini-2.5-flash",
-        contents=conversation_text
+        contents=prompt
     )
 
     return response.text
+
+
+def hunt_jobs(query, user_id):
+    # 1. Retrieve CV context from ChromaDB (RAG)
+    cv_chunks = query_cv(user_id, query, top_k=8)
+
+    # Check if user has any CV data at all
+    if not cv_chunks:
+        # Also do a broader check — maybe the user just has no data
+        all_data = cv_collection.get(where={"user_id": user_id})
+        if not all_data["ids"]:
+            raise ValueError("No CV found. Please upload your CV on the Profile page first.")
+        # If data exists but query didn't match, use whatever is available
+        cv_chunks = query_cv(user_id, "skills experience education projects", top_k=8)
+
+    cv_context = "\n\n---\n\n".join(
+        f"[{c['section'].upper()}]\n{c['content']}" for c in cv_chunks
+    )
+
+    # 2. Build the agent prompt
+    prompt = f"""You are CareerPilot's Job Hunter Agent — an intelligent job-matching system.
+
+You have access to the user's real CV data below. Your task is to find, filter, and score job opportunities that match their profile.
+
+USER'S CV CONTEXT:
+{cv_context}
+
+USER'S SEARCH QUERY: "{query}"
+
+INSTRUCTIONS:
+1. Based on the user's CV (skills, experience, education, projects) and their search query, generate 5-8 realistic job opportunities.
+2. Each job MUST be grounded in what the user actually has on their CV — do NOT fabricate experience or skills they don't have.
+3. Include a mix: some high-fit jobs (user clearly qualifies), some medium-fit (close but gaps exist), and optionally one low-fit (aspirational/stretch).
+4. Jobs should be realistic for the current market — use real-sounding company names, reasonable salary ranges.
+5. Sort results by fit score descending.
+6. For EACH job, explain in the 'reason' field WHY it matches or doesn't match the user's specific CV — reference concrete skills, projects, or experience from their CV.
+
+Return ONLY a valid JSON object in this exact format:
+{{
+  "jobs": [
+    {{
+      "role": "Job Title",
+      "company": "Company Name",
+      "location": "City / Remote / Hybrid",
+      "salary": "Salary range or 'Negotiable'",
+      "deadline": "Application deadline (e.g. Jul 15, 2025) or 'Rolling'",
+      "fit": 85,
+      "reason": "Specific explanation referencing CV: e.g. 'Strong match — your Python, TensorFlow skills and ML project on X align directly. Location matches preference.'"
+    }}
+  ]
+}}
+
+IMPORTANT: Return ONLY the JSON object, no markdown, no code fences, no extra text."""
+
+    # 3. Call Gemini with JSON mode
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt,
+        config={
+            "response_mime_type": "application/json",
+        }
+    )
+
+    # 4. Parse the response
+    raw = response.text.strip()
+    # Strip markdown code fences if Gemini wraps it
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
+    if raw.endswith("```"):
+        raw = raw[:-3]
+    raw = raw.strip()
+
+    data = json.loads(raw)
+
+    # Ensure we always return a list under "jobs"
+    if isinstance(data, list):
+        return {"jobs": data}
+    return data

@@ -7,6 +7,14 @@ const nudgeAccent = {
   success: { bg: "#ecfdf5", border: "#a7f3d0", icon: "#10b981", dot: "#10b981" },
 };
 
+const NUDGE_NAV = {
+  "Go to Job Hunter": "jobs",
+  "Open Tracker": "tracker",
+  "Upload CV": "profile",
+  "Open Tasks": "tracker",
+  "Open Goals": "tracker",
+};
+
 const s = {
   wrap: { fontFamily: "'Inter', system-ui, sans-serif" },
   h1: { fontSize: 22, fontWeight: 700, marginBottom: 4, color: "#111" },
@@ -37,7 +45,7 @@ const s = {
     alignItems: "flex-start",
     gap: 10,
   }),
-  nudgeIcon: (type) => ({
+  nudgeIcon: () => ({
     fontSize: 18,
     flexShrink: 0,
     marginTop: 1,
@@ -54,6 +62,7 @@ const s = {
     fontFamily: "inherit",
     whiteSpace: "nowrap",
     alignSelf: "center",
+    fontWeight: 600,
   }),
   dismissBtn: {
     background: "none", border: "none", color: "#bbb", cursor: "pointer",
@@ -79,7 +88,7 @@ const s = {
 const STAT_COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ef4444"];
 const STAT_EMOJIS = ["📨", "🎯", "🧠", "🔥"];
 
-export default function Dashboard() {
+export default function Dashboard({ setPage }) {
   const [stats, setStats] = useState({
     applications_sent: 0,
     interviews_scheduled: 0,
@@ -95,18 +104,6 @@ export default function Dashboard() {
 
   const userId = localStorage.getItem("user_id") || "user_default";
 
-  const fetchStats = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`http://localhost:8000/api/tracker/dashboard/?user_id=${userId}`);
-      setStats(res.data);
-    } catch (err) {
-      console.error("Error loading dashboard stats:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const fetchNudges = async () => {
     setNudgesLoading(true);
     try {
@@ -120,8 +117,30 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    fetchStats();
-    fetchNudges();
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      setNudgesLoading(true);
+      try {
+        const [statsRes, nudgesRes] = await Promise.all([
+          axios.get(`http://localhost:8000/api/tracker/dashboard/?user_id=${userId}`),
+          axios.get(`http://localhost:8000/api/tracker/nudges/?user_id=${userId}`),
+        ]);
+        if (!cancelled) {
+          setStats(statsRes.data);
+          setNudges(nudgesRes.data);
+        }
+      } catch (err) {
+        console.error("Error loading dashboard:", err);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+          setNudgesLoading(false);
+        }
+      }
+    };
+    load();
+    return () => { cancelled = true; };
   }, []);
 
   const statsList = [
@@ -135,13 +154,25 @@ export default function Dashboard() {
     ? Math.min(100, Math.round((stats.weekly_progress / stats.goal_target) * 100))
     : 0;
 
+  const roadmapPct = stats.goal_target > 0
+    ? Math.min(100, Math.round((stats.weekly_progress / stats.goal_target) * 100))
+    : 0;
+
   const progressList = [
     { label: `Weekly job goal: ${stats.weekly_progress} / ${stats.goal_target} applications`, pct: goalPct, color: "#6366f1" },
     { label: "Interview conversion rate", pct: stats.applications_sent > 0 ? Math.min(100, Math.round((stats.interviews_scheduled / stats.applications_sent) * 100)) : 0, color: "#f59e0b" },
     { label: "Skills tracked", pct: Math.min(100, stats.skills_added * 5), color: "#10b981" },
+    { label: "Roadmap progress", pct: roadmapPct, color: "#8b5cf6" },
   ];
 
   const visibleNudges = nudges.filter((_, i) => !dismissed.has(i));
+
+  const handleNudgeAction = (action) => {
+    const target = NUDGE_NAV[action];
+    if (target && setPage) {
+      setPage(target);
+    }
+  };
 
   return (
     <div style={s.wrap}>
@@ -176,7 +207,12 @@ export default function Dashboard() {
                 <span style={s.nudgeIcon(nudge.type)}>{nudge.icon}</span>
                 <span style={s.nudgeText}>{nudge.message}</span>
                 {nudge.action && (
-                  <button style={s.nudgeAction(nudge.type)}>{nudge.action}</button>
+                  <button
+                    style={s.nudgeAction(nudge.type)}
+                    onClick={() => handleNudgeAction(nudge.action)}
+                  >
+                    {nudge.action}
+                  </button>
                 )}
                 <button
                   style={s.dismissBtn}

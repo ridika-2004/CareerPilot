@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -156,12 +156,32 @@ const s = {
   },
 };
 
+function TypingIndicator() {
+  return (
+    <span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+      {[0, 1, 2].map(i => (
+        <span
+          key={i}
+          style={{
+            width: 6, height: 6, borderRadius: "50%", background: "#aaa",
+            display: "inline-block",
+            animation: `bounce 1.2s ${i * 0.2}s infinite`,
+          }}
+        />
+      ))}
+      <style>{`@keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-5px)} }`}</style>
+    </span>
+  );
+}
+
 export default function Assistant() {
   const [sessions, setSessions] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [cvUploaded] = useState(() => localStorage.getItem("cv_uploaded") === "true");
+  const chatAreaRef = useRef(null);
+  const userId = localStorage.getItem("user_id") || "user_default";
 
   // -----------------------------
   // LOAD SESSIONS
@@ -276,6 +296,7 @@ export default function Assistant() {
         body: JSON.stringify({
           sessionId: activeId,
           message: msg,
+          user_id: userId,
         }),
       });
 
@@ -302,6 +323,13 @@ export default function Assistant() {
       setLoading(false);
     }
   };
+
+  // Auto-scroll to latest message
+  useEffect(() => {
+    if (chatAreaRef.current) {
+      chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight;
+    }
+  }, [sessions, loading]);
 
   const activeSession = sessions.find((sess) => sess.id === activeId);
 
@@ -359,7 +387,7 @@ export default function Assistant() {
           </div>
         )}
 
-        <div style={s.chatArea}>
+        <div ref={chatAreaRef} style={s.chatArea}>
           {activeSession?.messages.length === 0 && (
             <>
               <div style={{ color: "#aaa", textAlign: "center", marginBottom: 16 }}>
@@ -386,6 +414,14 @@ export default function Assistant() {
               </div>
             </div>
           ))}
+
+          {loading && (
+            <div style={s.msg("assistant")}>
+              <div style={s.bubble("assistant")}>
+                <TypingIndicator />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* INPUT */}
@@ -399,7 +435,7 @@ export default function Assistant() {
           />
 
           <button style={s.btn} onClick={() => send()} disabled={loading}>
-            {loading ? "..." : "Send"}
+            {loading ? "⋯" : "Send"}
           </button>
         </div>
       </div>
