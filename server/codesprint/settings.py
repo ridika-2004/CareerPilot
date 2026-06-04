@@ -58,13 +58,6 @@ INSTALLED_APPS = [
     "rest_framework",
     "users",
     "assistant",
-]
-
-MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    "corsheaders",
-    "users",
     "cv",
     "tracker",
 ]
