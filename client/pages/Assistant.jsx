@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import API_URL from "../src/config";
+import useAuth from "../context/useAuth";
 
 const API = `${API_URL}/api/assistant`;
 
@@ -176,13 +177,16 @@ function TypingIndicator() {
 }
 
 export default function Assistant() {
+  const { user } = useAuth();
+  const userId = user?.user_id?.toString() || "anonymous";
+  const cvUploadedKey = `cv_uploaded_${userId}`;
+
   const [sessions, setSessions] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [cvUploaded] = useState(() => localStorage.getItem("cv_uploaded") === "true");
+  const [cvUploaded] = useState(() => localStorage.getItem(cvUploadedKey) === "true");
   const chatAreaRef = useRef(null);
-  const userId = localStorage.getItem("user_id") || "user_default";
 
   // -----------------------------
   // LOAD SESSIONS
@@ -271,7 +275,20 @@ export default function Assistant() {
   // -----------------------------
   const send = async (text) => {
     const msg = text || input;
-    if (!msg.trim() || !activeId) return;
+    if (!msg.trim()) return;
+
+    // Auto-create session if none is active
+    let sessionId = activeId;
+    if (!sessionId) {
+      const res = await fetch(`${API}/sessions/create/`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      sessionId = data.id;
+      const newSession = { id: data.id, title: data.title, messages: [] };
+      setSessions((prev) => [newSession, ...prev]);
+      setActiveId(sessionId);
+    }
 
     setInput("");
     setLoading(true);
@@ -279,7 +296,7 @@ export default function Assistant() {
     // add user message
     setSessions((prev) =>
       prev.map((s) =>
-        s.id === activeId
+        s.id === sessionId
           ? {
               ...s,
               messages: [...s.messages, { role: "user", content: msg }],
@@ -295,7 +312,7 @@ export default function Assistant() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          sessionId: activeId,
+          sessionId: sessionId,
           message: msg,
           user_id: userId,
         }),
@@ -310,7 +327,7 @@ export default function Assistant() {
 
       setSessions((prev) =>
         prev.map((s) =>
-          s.id === activeId
+          s.id === sessionId
             ? {
                 ...s,
                 messages: [...s.messages, data.message],
@@ -389,7 +406,7 @@ export default function Assistant() {
         )}
 
         <div ref={chatAreaRef} style={s.chatArea}>
-          {activeSession?.messages.length === 0 && (
+          {(!activeSession || activeSession.messages.length === 0) && (
             <>
               <div style={{ color: "#aaa", textAlign: "center", marginBottom: 16 }}>
                 Start a conversation or try a suggestion:
