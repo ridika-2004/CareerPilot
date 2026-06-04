@@ -1,7 +1,8 @@
 import { useState } from "react";
 import JobCard from "../components/JobCard";
+import API_URL from "../src/config";
 
-const API = "http://localhost:8000/api/assistant";
+const API = `${API_URL}/api/assistant`;
 
 const s = {
   h1: { fontSize: 20, fontWeight: 700, marginBottom: 4 },

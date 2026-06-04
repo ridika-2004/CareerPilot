@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import axios from "axios";
 import useAuth from "../context/useAuth";
+import API_URL from "../src/config";
 
 const s = {
   h1: { fontSize: 20, fontWeight: 700, marginBottom: 4 },
@@ -54,7 +55,7 @@ export default function Profile() {
     formData.append("user_id", userId);
 
     try {
-      const res = await axios.post("http://localhost:8000/api/cv/upload/", formData, {
+      const res = await axios.post(`${API_URL}/api/cv/upload/`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },

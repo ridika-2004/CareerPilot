@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import API_URL from "../src/config";
 
 const COLS = ["Applied", "Interviewing", "Offer", "Rejected"];
 
@@ -29,7 +30,7 @@ export default function KanbanBoard() {
   const fetchItems = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`http://localhost:8000/api/tracker/applications/?user_id=${userId}`);
+      const res = await axios.get(`${API_URL}/api/tracker/applications/?user_id=${userId}`);
       // Backend returns status as 'status'. We map it to 'col' on the frontend to match original design.
       const mapped = res.data.map(item => ({
         ...item,
@@ -50,7 +51,7 @@ export default function KanbanBoard() {
   const add = async (col) => {
     if (!form.role || !form.company) return;
     try {
-      const res = await axios.post("http://localhost:8000/api/tracker/applications/", {
+      const res = await axios.post(`${API_URL}/api/tracker/applications/`, {
         user_id: userId,
         role: form.role,
         company: form.company,
@@ -68,7 +69,7 @@ export default function KanbanBoard() {
     const card = items.find(i => i.id === id);
     if (!card) return;
     try {
-      await axios.put(`http://localhost:8000/api/tracker/applications/${id}/`, {
+      await axios.put(`${API_URL}/api/tracker/applications/${id}/`, {
         user_id: userId,
         role: card.role,
         company: card.company,
@@ -82,7 +83,7 @@ export default function KanbanBoard() {
 
   const removeCard = async (id) => {
     try {
-      await axios.delete(`http://localhost:8000/api/tracker/applications/${id}/?user_id=${userId}`);
+      await axios.delete(`${API_URL}/api/tracker/applications/${id}/?user_id=${userId}`);
       setItems(items.filter(item => item.id !== id));
     } catch (err) {
       console.error("Error deleting application:", err);

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import API_URL from "../src/config";
 
 const nudgeAccent = {
   warning: { bg: "#fafafa", border: "#e0e0e0", dot: "#555" },
@@ -105,7 +106,7 @@ export default function Dashboard({ setPage }) {
   const fetchNudges = async () => {
     setNudgesLoading(true);
     try {
-      const res = await axios.get(`http://localhost:8000/api/tracker/nudges/?user_id=${userId}`);
+      const res = await axios.get(`${API_URL}/api/tracker/nudges/?user_id=${userId}`);
       setNudges(res.data);
     } catch (err) {
       console.error("Error loading nudges:", err);
@@ -121,8 +122,8 @@ export default function Dashboard({ setPage }) {
       setNudgesLoading(true);
       try {
         const [statsRes, nudgesRes] = await Promise.all([
-          axios.get(`http://localhost:8000/api/tracker/dashboard/?user_id=${userId}`),
-          axios.get(`http://localhost:8000/api/tracker/nudges/?user_id=${userId}`),
+          axios.get(`${API_URL}/api/tracker/dashboard/?user_id=${userId}`),
+          axios.get(`${API_URL}/api/tracker/nudges/?user_id=${userId}`),
         ]);
         if (!cancelled) {
           setStats(statsRes.data);

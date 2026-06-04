@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import axios from 'axios';
+import API_URL from './config';
 
-const API = 'http://localhost:8000/api/cv';
+const API = `${API_URL}/api/cv`;
 
 export default function CVUpload({ userId }) {
   const [file, setFile] = useState(null);

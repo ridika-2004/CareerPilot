@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import API_URL from "../src/config";
 
-const API = "http://localhost:8000/api/assistant";
+const API = `${API_URL}/api/assistant`;
 
 const SUGGESTIONS = [
   "Am I ready for a data engineer role?",

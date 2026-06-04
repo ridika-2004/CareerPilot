@@ -1,6 +1,7 @@
 import axios from "axios";
+import API_URL from "../src/config";
 
-const API = "http://localhost:8000/api/users";
+const API = `${API_URL}/api/users`;
 
 const authService = {
   async register({ username, email, password, full_name }) {
