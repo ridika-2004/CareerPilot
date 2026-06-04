@@ -1,38 +1,92 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 
 const COLS = ["Applied", "Interviewing", "Offer", "Rejected"];
-
-const SAMPLE = [
-  { id: 1, role: "ML Engineer", company: "DataCo", col: "Applied", date: "Jun 2" },
-  { id: 2, role: "Backend Dev", company: "Techify", col: "Interviewing", date: "May 28" },
-  { id: 3, role: "Data Analyst", company: "FinCorp", col: "Offer", date: "May 20" },
-  { id: 4, role: "SWE Intern", company: "StartupX", col: "Rejected", date: "May 15" },
-];
 
 const colColor = { Applied: "#e8f0ff", Interviewing: "#fff8e0", Offer: "#e6f7ee", Rejected: "#fdecea" };
 const colBorder = { Applied: "#b3c9ff", Interviewing: "#ffe699", Offer: "#99dbb4", Rejected: "#f5b3ae" };
 
 const s = {
   board: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 },
-  col: (c) => ({ background: colColor[c], border: `1px solid ${colBorder[c]}`, borderRadius: 6, padding: 12, minHeight: 200 }),
+  col: (c) => ({ background: colColor[c], border: `1px solid ${colBorder[c]}`, borderRadius: 6, padding: 12, minHeight: 300 }),
   colHead: { fontWeight: 600, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em", color: "#444", marginBottom: 10 },
-  card: { background: "#fff", border: "1px solid #e5e5e5", borderRadius: 4, padding: "10px 12px", marginBottom: 8 },
-  cardRole: { fontWeight: 600, fontSize: 13 },
+  card: { background: "#fff", border: "1px solid #e5e5e5", borderRadius: 4, padding: "10px 12px", marginBottom: 8, position: "relative" },
+  cardRole: { fontWeight: 600, fontSize: 13, paddingRight: 20 },
   cardCo: { color: "#777", fontSize: 12 },
-  cardDate: { color: "#aaa", fontSize: 11, marginTop: 4 },
+  cardDate: { color: "#aaa", fontSize: 11, marginTop: 6, display: "flex", justifyContent: "space-between", alignItems: "center" },
   addBtn: { width: "100%", background: "none", border: "1px dashed #ccc", borderRadius: 4, padding: "6px 0", color: "#aaa", cursor: "pointer", fontSize: 12 },
+  select: { border: "1px solid #ddd", borderRadius: 3, fontSize: 10, padding: "1px 4px", background: "#f9f9f9", cursor: "pointer", color: "#555", outline: "none" },
+  deleteBtn: { position: "absolute", top: 8, right: 8, background: "none", border: "none", color: "#bbb", cursor: "pointer", fontSize: 12, padding: 0 }
 };
 
 export default function KanbanBoard() {
-  const [items, setItems] = useState(SAMPLE);
+  const [items, setItems] = useState([]);
   const [adding, setAdding] = useState(null);
   const [form, setForm] = useState({ role: "", company: "" });
+  const [loading, setLoading] = useState(false);
+  const userId = localStorage.getItem("user_id") || "user_default";
 
-  const add = (col) => {
-    if (!form.role) return;
-    setItems([...items, { id: Date.now(), col, date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }), ...form }]);
-    setAdding(null);
-    setForm({ role: "", company: "" });
+  const fetchItems = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`http://localhost:8000/api/tracker/applications/?user_id=${userId}`);
+      // Backend returns status as 'status'. We map it to 'col' on the frontend to match original design.
+      const mapped = res.data.map(item => ({
+        ...item,
+        col: item.status
+      }));
+      setItems(mapped);
+    } catch (err) {
+      console.error("Error fetching applications:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchItems();
+  }, []);
+
+  const add = async (col) => {
+    if (!form.role || !form.company) return;
+    try {
+      const res = await axios.post("http://localhost:8000/api/tracker/applications/", {
+        user_id: userId,
+        role: form.role,
+        company: form.company,
+        status: col
+      });
+      setItems([...items, { ...res.data, col: res.data.status }]);
+      setAdding(null);
+      setForm({ role: "", company: "" });
+    } catch (err) {
+      console.error("Error adding application:", err);
+    }
+  };
+
+  const moveCard = async (id, newCol) => {
+    const card = items.find(i => i.id === id);
+    if (!card) return;
+    try {
+      await axios.put(`http://localhost:8000/api/tracker/applications/${id}/`, {
+        user_id: userId,
+        role: card.role,
+        company: card.company,
+        status: newCol
+      });
+      setItems(items.map(item => item.id === id ? { ...item, col: newCol, status: newCol } : item));
+    } catch (err) {
+      console.error("Error moving application:", err);
+    }
+  };
+
+  const removeCard = async (id) => {
+    try {
+      await axios.delete(`http://localhost:8000/api/tracker/applications/${id}/?user_id=${userId}`);
+      setItems(items.filter(item => item.id !== id));
+    } catch (err) {
+      console.error("Error deleting application:", err);
+    }
   };
 
   return (
@@ -40,17 +94,31 @@ export default function KanbanBoard() {
       {COLS.map((col) => (
         <div key={col} style={s.col(col)}>
           <div style={s.colHead}>{col} ({items.filter((i) => i.col === col).length})</div>
-          {items.filter((i) => i.col === col).map((item) => (
-            <div key={item.id} style={s.card}>
-              <div style={s.cardRole}>{item.role}</div>
-              <div style={s.cardCo}>{item.company}</div>
-              <div style={s.cardDate}>{item.date}</div>
-            </div>
-          ))}
+          {loading && items.length === 0 ? (
+            <div style={{ fontSize: 12, color: "#888", textAlign: "center", padding: "20px 0" }}>Loading...</div>
+          ) : (
+            items.filter((i) => i.col === col).map((item) => (
+              <div key={item.id} style={s.card}>
+                <button style={s.deleteBtn} onClick={() => removeCard(item.id)}>×</button>
+                <div style={s.cardRole}>{item.role}</div>
+                <div style={s.cardCo}>{item.company}</div>
+                <div style={s.cardDate}>
+                  <span>{item.date}</span>
+                  <select
+                    value={item.col}
+                    onChange={(e) => moveCard(item.id, e.target.value)}
+                    style={s.select}
+                  >
+                    {COLS.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              </div>
+            ))
+          )}
           {adding === col ? (
             <div style={s.card}>
-              <input placeholder="Role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} style={{ width: "100%", border: "1px solid #ddd", borderRadius: 3, padding: "4px 6px", fontSize: 12, marginBottom: 4, boxSizing: "border-box" }} />
-              <input placeholder="Company" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} style={{ width: "100%", border: "1px solid #ddd", borderRadius: 3, padding: "4px 6px", fontSize: 12, marginBottom: 6, boxSizing: "border-box" }} />
+              <input placeholder="Role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} style={{ width: "100%", border: "1px solid #ddd", borderRadius: 3, padding: "4px 6px", fontSize: 12, marginBottom: 4, boxSizing: "border-box", outline: "none" }} />
+              <input placeholder="Company" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} style={{ width: "100%", border: "1px solid #ddd", borderRadius: 3, padding: "4px 6px", fontSize: 12, marginBottom: 6, boxSizing: "border-box", outline: "none" }} />
               <button onClick={() => add(col)} style={{ marginRight: 6, fontSize: 11, cursor: "pointer", border: "1px solid #ccc", borderRadius: 3, padding: "3px 8px", background: "#1a1a1a", color: "#fff" }}>Add</button>
               <button onClick={() => setAdding(null)} style={{ fontSize: 11, cursor: "pointer", border: "1px solid #ccc", borderRadius: 3, padding: "3px 8px", background: "none" }}>Cancel</button>
             </div>
@@ -62,3 +130,4 @@ export default function KanbanBoard() {
     </div>
   );
 }
+
