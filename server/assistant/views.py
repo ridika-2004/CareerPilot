@@ -1,0 +1,182 @@
+import json
+from mongoengine.errors import DoesNotExist
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from .models import ChatSession
+from .models import Message
+
+from .services import generate_reply
+
+
+@csrf_exempt
+def create_session(request):
+
+    if request.method != "POST":
+        return JsonResponse(
+            {"error": "POST only"},
+            status=405
+        )
+
+    session = ChatSession()
+    session.save()
+
+    return JsonResponse({
+        "id": str(session.id),
+        "title": session.title,
+        "messages": []
+    })
+
+
+@csrf_exempt
+def get_sessions(request):
+
+    sessions = (
+        ChatSession.objects
+        .order_by("-updated_at")
+    )
+
+    data = []
+
+    for s in sessions:
+        data.append({
+            "id": str(s.id),
+            "title": s.title
+        })
+
+    return JsonResponse(
+        data,
+        safe=False
+    )
+
+
+@csrf_exempt
+def get_session(request, session_id):
+
+    session = ChatSession.objects.get(
+        id=session_id
+    )
+
+    return JsonResponse({
+        "id": str(session.id),
+        "title": session.title,
+        "messages": [
+            {
+                "role": m.role,
+                "content": m.content
+            }
+            for m in session.messages
+        ]
+    })
+
+
+@csrf_exempt
+def rename_session(request, session_id):
+
+    body = json.loads(
+        request.body
+    )
+
+    title = body["title"]
+
+    session = ChatSession.objects.get(
+        id=session_id
+    )
+
+    session.title = title
+    session.save()
+
+    return JsonResponse({
+        "success": True
+    })
+
+
+@csrf_exempt
+def delete_session(request, session_id):
+
+    ChatSession.objects.get(
+        id=session_id
+    ).delete()
+
+    return JsonResponse({
+        "success": True
+    })
+
+
+@csrf_exempt
+def send_message(request):
+
+    if request.method!= "POST":
+        return JsonResponse(
+            {"error": "POST request required"},
+            status=405
+        )
+    
+    try:
+        body = json.loads(request.body)
+    
+    
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {"error": "Invalid JSON"},
+            status=400
+        )
+
+    session_id = body.get("sessionId")
+    message = body.get("message")
+
+    if not session_id or not message:
+        return JsonResponse(
+            {"error": "sessionId and message are required"},status=400)
+
+    try:
+        session = ChatSession.objects.get(
+            id=session_id
+        )
+    except DoesNotExist:
+        return JsonResponse(
+            {"error": "Session not found"},
+            status=404
+        )
+
+    user_message = Message(
+        role="user",
+        content=message
+    )
+
+    session.messages.append(
+        user_message
+    )
+
+    if (
+        session.title == "New Chat"
+        and len(session.messages) == 1
+    ):
+        session.title = message[:30]
+
+    try:
+        reply = generate_reply(
+            session.messages
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"error": str(e)},
+            status=500
+        )
+    
+    assistant_message = Message(
+        role="assistant",
+        content=reply
+    )
+
+    session.messages.append(
+        assistant_message
+    )
+
+    session.save()
+
+    return JsonResponse({
+        "message": {
+            "role": "assistant",
+            "content": reply
+        }
+    })
