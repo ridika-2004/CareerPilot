@@ -1,6 +1,8 @@
 import os
 import json
+import time
 from google import genai
+from google.genai import errors
 from dotenv import load_dotenv
 from cv.services.embed_store import query_cv, collection as cv_collection
 
@@ -9,6 +11,57 @@ load_dotenv()
 client = genai.Client(
     api_key=os.getenv("GEMINI_API_KEY")
 )
+
+# Models to try in order (each has its own free-tier quota)
+FALLBACK_MODELS = ["gemini-2.0-flash", "gemini-2.5-flash"]
+
+
+def call_gemini(prompt, config=None, max_retries=2):
+    """Call Gemini with automatic retry on 429 and model fallback."""
+    models_to_try = ["gemini-2.5-flash"] + FALLBACK_MODELS
+
+    for model in models_to_try:
+        for attempt in range(max_retries + 1):
+            try:
+                if config:
+                    response = client.models.generate_content(
+                        model=model,
+                        contents=prompt,
+                        config=config
+                    )
+                else:
+                    response = client.models.generate_content(
+                        model=model,
+                        contents=prompt
+                    )
+                return response
+            except errors.ClientError as e:
+                err_str = str(e)
+                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                    # Extract retry delay from error message
+                    retry_delay = 5 * (attempt + 1)  # default backoff
+                    # Try to parse "retry in Xs" from error
+                    import re
+                    match = re.search(r'retry in ([\d.]+)s', err_str)
+                    if match:
+                        retry_delay = min(float(match.group(1)) + 1, 60)
+
+                    if attempt < max_retries:
+                        print(f"Gemini 429 quota hit on {model}, retrying in {retry_delay:.0f}s (attempt {attempt+1}/{max_retries})")
+                        time.sleep(retry_delay)
+                        continue
+                    else:
+                        # Try next model
+                        print(f"Gemini 429 quota exhausted for {model}, trying fallback model...")
+                        break
+                else:
+                    raise
+    # All models exhausted
+    raise Exception(
+        "All Gemini models have exhausted their daily quota. "
+        "The free tier allows 20 requests/day per model. "
+        "Please wait for the quota to reset (resets daily) or upgrade to a paid plan."
+    )
 
 SYSTEM_PROMPT = """
 You are CareerPilot — a deeply personalized AI career assistant.
@@ -80,10 +133,7 @@ def generate_reply(messages, user_id=None):
         role = "User" if msg.role == "user" else "Assistant"
         prompt += f"{role}: {msg.content}\n"
 
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt
-    )
+    response = call_gemini(prompt)
 
     return response.text
 
@@ -140,13 +190,10 @@ Return ONLY a valid JSON object in this exact format:
 
 IMPORTANT: Return ONLY the JSON object, no markdown, no code fences, no extra text."""
 
-    # 3. Call Gemini with JSON mode
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt,
-        config={
-            "response_mime_type": "application/json",
-        }
+    # 3. Call Gemini with JSON mode (with retry + fallback)
+    response = call_gemini(
+        prompt,
+        config={"response_mime_type": "application/json"}
     )
 
     # 4. Parse the response

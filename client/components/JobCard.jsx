@@ -1,6 +1,6 @@
 import { useState } from "react";
-import axios from "axios";
-import API_URL from "../src/config";
+import useAuth from "../context/useAuth";
+import api from "../src/api";
 
 const s = {
   card: { background: "#fff", border: "1px solid #e5e5e5", borderRadius: 8, padding: "16px 18px", marginBottom: 12, transition: "box-shadow 0.15s" },
@@ -29,6 +29,8 @@ const s = {
 };
 
 export default function JobCard({ job }) {
+  const { user } = useAuth();
+  const userId = user?.user_id?.toString() || "";
   const [applied, setApplied] = useState(false);
   const [applying, setApplying] = useState(false);
 
@@ -36,8 +38,7 @@ export default function JobCard({ job }) {
     if (applied || applying) return;
     setApplying(true);
     try {
-      const userId = localStorage.getItem("user_id") || "user_default";
-      await axios.post(`${API_URL}/api/tracker/applications/`, {
+      await api.post(`/api/tracker/applications/`, {
         user_id: userId,
         role: job.role,
         company: job.company,

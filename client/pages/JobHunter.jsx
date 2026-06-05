@@ -1,5 +1,6 @@
 import { useState } from "react";
 import JobCard from "../components/JobCard";
+import useAuth from "../context/useAuth";
 import API_URL from "../src/config";
 
 const API = `${API_URL}/api/assistant`;
@@ -24,16 +25,12 @@ const s = {
   empty: { color: "#888", fontSize: 13, textAlign: "center", padding: "32px 0" },
 };
 
-const getUserId = () => {
-  let id = localStorage.getItem("user_id");
-  if (!id) {
-    id = "user_" + Math.random().toString(36).substring(2, 9);
-    localStorage.setItem("user_id", id);
-  }
-  return id;
+const getUserId = (user) => {
+  return user?.user_id?.toString() || "anonymous";
 };
 
 export default function JobHunter() {
+  const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -54,7 +51,7 @@ export default function JobHunter() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           query: query.trim(),
-          user_id: getUserId(),
+          user_id: getUserId(user),
         }),
       });
 

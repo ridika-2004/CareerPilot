@@ -9,6 +9,7 @@ class Message(EmbeddedDocument):
 
 
 class ChatSession(Document):
+    user_id = StringField(default="anonymous")
     title = StringField(default="New Chat")
 
     created_at = DateTimeField(
@@ -24,5 +25,6 @@ class ChatSession(Document):
     )
 
     meta = {
-        "collection": "chat_sessions"
+        "collection": "chat_sessions",
+        "indexes": ["user_id"]
     }

@@ -1,4 +1,5 @@
 import axios from "axios";
+import api from "../src/api";
 import API_URL from "../src/config";
 
 const API = `${API_URL}/api/users`;
@@ -20,7 +21,7 @@ const authService = {
   },
 
   async me(token) {
-    const res = await axios.get(`${API}/me/`, {
+    const res = await api.get(`/api/users/me/`, {
       headers: { Authorization: `Token ${token}` },
     });
     return res.data;
@@ -28,7 +29,7 @@ const authService = {
 
   async logout(token) {
     try {
-      await axios.post(`${API}/logout/`, null, {
+      await api.post(`/api/users/logout/`, null, {
         headers: { Authorization: `Token ${token}` },
       });
     } catch {

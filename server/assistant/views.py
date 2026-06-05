@@ -17,7 +17,14 @@ def create_session(request):
             status=405
         )
 
-    session = ChatSession()
+    try:
+        body = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        body = {}
+
+    user_id = body.get("user_id", "anonymous")
+
+    session = ChatSession(user_id=user_id)
     session.save()
 
     return JsonResponse({
@@ -30,8 +37,15 @@ def create_session(request):
 @csrf_exempt
 def get_sessions(request):
 
+    user_id = request.GET.get("user_id", "")
+
+    query = {}
+    if user_id:
+        query["user_id"] = user_id
+
     sessions = (
         ChatSession.objects
+        .filter(**query)
         .order_by("-updated_at")
     )
 

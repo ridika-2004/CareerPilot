@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import API_URL from "../src/config";
+import useAuth from "../context/useAuth";
+import api from "../src/api";
 
 const nudgeAccent = {
   warning: { bg: "#fafafa", border: "#e0e0e0", dot: "#555" },
@@ -110,17 +110,20 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [nudgesLoading, setNudgesLoading] = useState(true);
 
-  const userId = localStorage.getItem("user_id") || "user_default";
+  const { user } = useAuth();
+  const userId = user?.user_id?.toString() || "";
 
   useEffect(() => {
+    if (!userId) return;
+
     const load = async () => {
       setLoading(true);
       setNudgesLoading(true);
 
       try {
         const [statsRes, nudgesRes] = await Promise.all([
-          axios.get(`${API_URL}/api/tracker/dashboard/?user_id=${userId}`),
-          axios.get(`${API_URL}/api/tracker/nudges/?user_id=${userId}`),
+          api.get(`/api/tracker/dashboard/?user_id=${userId}`),
+          api.get(`/api/tracker/nudges/?user_id=${userId}`),
         ]);
 
         setStats(statsRes.data);
@@ -134,7 +137,7 @@ export default function Dashboard() {
     };
 
     load();
-  }, []);
+  }, [userId]);
 
   const statsList = [
     { num: stats.applications_sent, label: "Applications sent" },

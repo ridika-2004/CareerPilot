@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
 import KanbanBoard from "../components/KanbanBoard";
-import API_URL from "../src/config";
+import useAuth from "../context/useAuth";
+import api from "../src/api";
 
 const s = {
   h1: { fontSize: 22, fontWeight: 700, marginBottom: 4, color: "#111", fontFamily: "'Roboto Mono', monospace" },
@@ -90,6 +90,9 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 export default function Tracker() {
+  const { user } = useAuth();
+  const userId = user?.user_id?.toString() || "";
+
   const [tab, setTab] = useState("kanban");
 
   // Todos
@@ -115,15 +118,14 @@ export default function Tracker() {
   const [eventTitle, setEventTitle] = useState("");
   const [eventType, setEventType] = useState("interview");
 
-  const userId = localStorage.getItem("user_id") || "user_default";
-
   const fetchData = async () => {
+    if (!userId) return;
     try {
       const [todosRes, eventsRes, statsRes, goalsRes] = await Promise.all([
-        axios.get(`${API_URL}/api/tracker/todos/?user_id=${userId}`),
-        axios.get(`${API_URL}/api/tracker/events/?user_id=${userId}`),
-        axios.get(`${API_URL}/api/tracker/dashboard/?user_id=${userId}`),
-        axios.get(`${API_URL}/api/tracker/goals/?user_id=${userId}`),
+        api.get(`/api/tracker/todos/?user_id=${userId}`),
+        api.get(`/api/tracker/events/?user_id=${userId}`),
+        api.get(`/api/tracker/dashboard/?user_id=${userId}`),
+        api.get(`/api/tracker/goals/?user_id=${userId}`),
       ]);
       setTodos(todosRes.data);
       setEvents(eventsRes.data);
@@ -135,13 +137,13 @@ export default function Tracker() {
     }
   };
 
-  useEffect(() => { fetchData(); }, [tab]);
+  useEffect(() => { fetchData(); }, [tab, userId]);
 
   // ── Todos ──────────────────────────────────────
   const addTodo = async () => {
     if (!newTodo.trim()) return;
     try {
-      const res = await axios.post(`${API_URL}/api/tracker/todos/`, { user_id: userId, text: newTodo });
+      const res = await api.post(`/api/tracker/todos/`, { user_id: userId, text: newTodo });
       setTodos([res.data, ...todos]);
       setNewTodo("");
     } catch (err) { console.error(err); }
@@ -149,14 +151,14 @@ export default function Tracker() {
 
   const toggleTodo = async (id, current) => {
     try {
-      const res = await axios.put(`${API_URL}/api/tracker/todos/${id}/`, { user_id: userId, completed: !current });
+      const res = await api.put(`/api/tracker/todos/${id}/`, { user_id: userId, completed: !current });
       setTodos(todos.map(t => t.id === id ? res.data : t));
     } catch (err) { console.error(err); }
   };
 
   const deleteTodo = async (id) => {
     try {
-      await axios.delete(`${API_URL}/api/tracker/todos/${id}/?user_id=${userId}`);
+      await api.delete(`/api/tracker/todos/${id}/?user_id=${userId}`);
       setTodos(todos.filter(t => t.id !== id));
     } catch (err) { console.error(err); }
   };
@@ -166,7 +168,7 @@ export default function Tracker() {
     const val = parseInt(goalInput);
     if (isNaN(val) || val <= 0) return;
     try {
-      const res = await axios.post(`${API_URL}/api/tracker/goal/`, { user_id: userId, goal_target: val });
+      const res = await api.post(`/api/tracker/goal/`, { user_id: userId, goal_target: val });
       setStats({ ...stats, goal_target: res.data.goal_target });
       setIsEditingGoal(false);
     } catch (err) { console.error(err); }
@@ -176,7 +178,7 @@ export default function Tracker() {
   const addGoal = async () => {
     if (!newGoalText.trim()) return;
     try {
-      const res = await axios.post(`${API_URL}/api/tracker/goals/`, {
+      const res = await api.post(`/api/tracker/goals/`, {
         user_id: userId,
         text: newGoalText,
         deadline: newGoalDeadline || undefined,
@@ -190,14 +192,14 @@ export default function Tracker() {
 
   const toggleGoal = async (id, current) => {
     try {
-      const res = await axios.put(`${API_URL}/api/tracker/goals/${id}/`, { user_id: userId, completed: !current });
+      const res = await api.put(`/api/tracker/goals/${id}/`, { user_id: userId, completed: !current });
       setGoals(goals.map(g => g.id === id ? res.data : g));
     } catch (err) { console.error(err); }
   };
 
   const deleteGoal = async (id) => {
     try {
-      await axios.delete(`${API_URL}/api/tracker/goals/${id}/?user_id=${userId}`);
+      await api.delete(`/api/tracker/goals/${id}/?user_id=${userId}`);
       setGoals(goals.filter(g => g.id !== id));
     } catch (err) { console.error(err); }
   };
@@ -222,7 +224,7 @@ export default function Tracker() {
   const addCalendarEvent = async () => {
     if (!eventTitle.trim() || !selectedDate) return;
     try {
-      const res = await axios.post(`${API_URL}/api/tracker/events/`, {
+      const res = await api.post(`/api/tracker/events/`, {
         user_id: userId, title: eventTitle, date: selectedDate, event_type: eventType,
       });
       setEvents([...events, res.data]);
@@ -233,7 +235,7 @@ export default function Tracker() {
 
   const removeCalendarEvent = async (id) => {
     try {
-      await axios.delete(`${API_URL}/api/tracker/events/${id}/?user_id=${userId}`);
+      await api.delete(`/api/tracker/events/${id}/?user_id=${userId}`);
       setEvents(events.filter(e => e.id !== id));
     } catch (err) { console.error(err); }
   };

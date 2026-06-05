@@ -192,7 +192,7 @@ export default function Assistant() {
   // LOAD SESSIONS
   // -----------------------------
   useEffect(() => {
-    fetch(`${API}/sessions/`)
+    fetch(`${API}/sessions/?user_id=${userId}`)
       .then((res) => res.json())
       .then((data) => {
         const mapped = data.map((s) => ({
@@ -207,7 +207,7 @@ export default function Assistant() {
           setActiveId(mapped[0].id);
         }
       });
-  }, []);
+  }, [userId]);
 
   // -----------------------------
   // LOAD MESSAGES FOR ACTIVE SESSION
@@ -239,6 +239,10 @@ export default function Assistant() {
   const createSession = async () => {
     const res = await fetch(`${API}/sessions/create/`, {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ user_id: userId }),
     });
 
     const data = await res.json();
@@ -306,6 +310,10 @@ export default function Assistant() {
     if (!sessionId) {
       const res = await fetch(`${API}/sessions/create/`, {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ user_id: userId }),
       });
       const data = await res.json();
       sessionId = data.id;
