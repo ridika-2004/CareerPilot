@@ -23,6 +23,9 @@ SECRET_KEY = os.getenv(
 
 DEBUG = os.getenv("DEBUG", "True").lower() in ("true", "1", "yes")
 
+# Vercel serverless detection
+IS_VERCEL = os.getenv("VERCEL") == "1"
+
 if DEBUG:
     ALLOWED_HOSTS = ["*"]  # Accept all hosts in dev/production
 else:
@@ -32,7 +35,7 @@ else:
 CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL", "True").lower() in ("true", "1")
 CORS_ALLOWED_ORIGINS = [
     o.strip()
-    for o in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:5174").split(",")
+    for o in os.getenv("CORS_ALLOWED_ORIGINS", "https://career-pilot-rose-nine.vercel.app,http://localhost:5173,http://localhost:5174").split(",")
     if o.strip()
 ]
 
@@ -64,6 +67,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
@@ -91,12 +95,21 @@ TEMPLATES = [
 WSGI_APPLICATION = "codesprint.wsgi.application"
 
 # Database
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+if IS_VERCEL:
+    # Vercel serverless: use /tmp (writable but ephemeral — resets on each deploy)
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": "/tmp/db.sqlite3",
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -114,12 +127,15 @@ USE_TZ = True
 
 # Static files
 STATIC_URL = "static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_ROOT = os.path.join("/tmp", "staticfiles") if IS_VERCEL else BASE_DIR / "staticfiles"
 STORAGES = {
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
+
+# ChromaDB path — /tmp on Vercel, local folder otherwise
+CHROMA_DB_PATH = "/tmp/chroma_db" if IS_VERCEL else str(BASE_DIR / "chroma_db")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

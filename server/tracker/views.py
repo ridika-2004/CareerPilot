@@ -6,6 +6,8 @@ import chromadb
 
 from .models import JobApplication, TodoItem, CalendarEvent, TrackerProfile, CustomGoal
 
+from django.conf import settings as django_settings
+
 # Helper to get/update user streak
 def get_and_update_streak(user_id):
     profile, created = TrackerProfile.objects.get_or_create(user_id=user_id)
@@ -29,7 +31,8 @@ def get_and_update_streak(user_id):
 # Helper to count skills in Vector DB
 def get_skills_count(user_id):
     try:
-        chroma_client = chromadb.PersistentClient(path="./chroma_db")
+        chroma_db_path = getattr(django_settings, "CHROMA_DB_PATH", "./chroma_db")
+        chroma_client = chromadb.PersistentClient(path=chroma_db_path)
         collection = chroma_client.get_or_create_collection(
             name="cv_chunks",
             metadata={"hnsw:space": "cosine"}
@@ -425,7 +428,8 @@ class AINudgesView(APIView):
 
         # 3. Check if CV was uploaded
         try:
-            chroma_client = chromadb.PersistentClient(path="./chroma_db")
+            chroma_db_path = getattr(django_settings, "CHROMA_DB_PATH", "./chroma_db")
+            chroma_client = chromadb.PersistentClient(path=chroma_db_path)
             collection = chroma_client.get_or_create_collection(
                 name="cv_chunks",
                 metadata={"hnsw:space": "cosine"}

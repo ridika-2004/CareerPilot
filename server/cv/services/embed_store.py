@@ -10,8 +10,9 @@ openai_client = OpenAI(
     base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
 )
 
-# Data saved in a local folder called "chroma_db" in your project root
-chroma_client = chromadb.PersistentClient(path="./chroma_db")
+# Use configurable path — /tmp/chroma_db on Vercel, ./chroma_db locally
+chroma_db_path = getattr(settings, "CHROMA_DB_PATH", "./chroma_db")
+chroma_client = chromadb.PersistentClient(path=chroma_db_path)
 collection = chroma_client.get_or_create_collection(
     name="cv_chunks",
     metadata={"hnsw:space": "cosine"}
