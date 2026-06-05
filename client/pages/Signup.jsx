@@ -1,5 +1,6 @@
 import { useState } from "react";
 import useAuth from "../context/useAuth";
+import { useNavigate } from "react-router-dom";
 
 const s = {
   page: {
@@ -21,8 +22,6 @@ const s = {
   logo: {
     fontWeight: 700,
     fontSize: 18,
-    letterSpacing: "-0.5px",
-    marginBottom: 4,
     textAlign: "center",
   },
   logoSub: {
@@ -35,7 +34,6 @@ const s = {
     fontSize: 20,
     fontWeight: 600,
     marginBottom: 6,
-    color: "#111",
   },
   subtext: {
     fontSize: 13,
@@ -45,8 +43,6 @@ const s = {
   label: {
     display: "block",
     fontSize: 12,
-    fontWeight: 500,
-    color: "#555",
     marginBottom: 6,
   },
   input: {
@@ -55,10 +51,7 @@ const s = {
     border: "1px solid #ddd",
     borderRadius: 6,
     fontSize: 13,
-    fontFamily: "'Roboto Mono', monospace",
     marginBottom: 18,
-    outline: "none",
-    transition: "border-color 0.15s",
     background: "#fafafa",
   },
   btn: {
@@ -68,18 +61,15 @@ const s = {
     borderRadius: 6,
     background: "#1a1a1a",
     color: "#fff",
-    fontFamily: "'Roboto Mono', monospace",
     fontSize: 14,
     fontWeight: 600,
     cursor: "pointer",
-    transition: "background 0.15s",
     marginTop: 8,
   },
   error: {
     background: "#fef2f2",
     border: "1px solid #fecaca",
-    borderRadius: 6,
-    padding: "10px 12px",
+    padding: 10,
     fontSize: 12,
     color: "#b91c1c",
     marginBottom: 16,
@@ -102,21 +92,24 @@ const s = {
     padding: 0,
   },
   backLink: {
-    position: "absolute",
-    top: 24,
-    left: 32,
+    display: "block",
+    width: "100%",
+    textAlign: "center",
     fontSize: 12,
     color: "#999",
-    cursor: "pointer",
+    marginTop: 16,
     background: "none",
     border: "none",
+    cursor: "pointer",
     fontFamily: "'Roboto Mono', monospace",
     textDecoration: "none",
   },
 };
 
-export default function Signup({ onNavigate }) {
+export default function Signup() {
   const { register } = useAuth();
+  const navigate = useNavigate();
+
   const [form, setForm] = useState({
     full_name: "",
     username: "",
@@ -124,6 +117,7 @@ export default function Signup({ onNavigate }) {
     password: "",
     confirmPassword: "",
   });
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -142,6 +136,7 @@ export default function Signup({ onNavigate }) {
     }
 
     setLoading(true);
+
     try {
       await register({
         full_name: form.full_name,
@@ -149,34 +144,23 @@ export default function Signup({ onNavigate }) {
         email: form.email,
         password: form.password,
       });
-      onNavigate("dashboard");
+
+      navigate("/dashboard"); // ✅ REAL ROUTE
     } catch (err) {
-      setError(err.response?.data?.error || "Registration failed. Please try again.");
+      setError(err.response?.data?.error || "Registration failed.");
     } finally {
       setLoading(false);
     }
   };
 
-  const inputFocus = (e) => {
-    e.currentTarget.style.borderColor = "#1a1a1a";
-    e.currentTarget.style.background = "#fff";
-  };
-  const inputBlur = (e) => {
-    e.currentTarget.style.borderColor = "#ddd";
-    e.currentTarget.style.background = "#fafafa";
-  };
-
   return (
     <div style={s.page}>
-      <button style={s.backLink} onClick={() => onNavigate("landing")}>
-        Back to home
-      </button>
       <div style={s.card}>
         <div style={s.logo}>CareerPilot</div>
         <div style={s.logoSub}>agentic co-pilot</div>
 
         <div style={s.heading}>Create your account</div>
-        <div style={s.subtext}>Start managing your career with AI-powered tools.</div>
+        <div style={s.subtext}>Start managing your career with AI tools.</div>
 
         {error && <div style={s.error}>{error}</div>}
 
@@ -184,24 +168,16 @@ export default function Signup({ onNavigate }) {
           <label style={s.label}>Full Name</label>
           <input
             style={s.input}
-            type="text"
             value={form.full_name}
             onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-            placeholder="Your full name"
-            onFocus={inputFocus}
-            onBlur={inputBlur}
             required
           />
 
           <label style={s.label}>Username</label>
           <input
             style={s.input}
-            type="text"
             value={form.username}
             onChange={(e) => setForm({ ...form, username: e.target.value })}
-            placeholder="Choose a username"
-            onFocus={inputFocus}
-            onBlur={inputBlur}
             required
           />
 
@@ -211,9 +187,6 @@ export default function Signup({ onNavigate }) {
             type="email"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
-            placeholder="you@example.com"
-            onFocus={inputFocus}
-            onBlur={inputBlur}
             required
           />
 
@@ -223,9 +196,6 @@ export default function Signup({ onNavigate }) {
             type="password"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
-            placeholder="At least 8 characters"
-            onFocus={inputFocus}
-            onBlur={inputBlur}
             required
           />
 
@@ -235,33 +205,24 @@ export default function Signup({ onNavigate }) {
             type="password"
             value={form.confirmPassword}
             onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
-            placeholder="Repeat your password"
-            onFocus={inputFocus}
-            onBlur={inputBlur}
             required
           />
 
-          <button
-            type="submit"
-            style={{
-              ...s.btn,
-              opacity: loading ? 0.6 : 1,
-              cursor: loading ? "not-allowed" : "pointer",
-            }}
-            disabled={loading}
-            onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = "#333"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "#1a1a1a"; }}
-          >
+          <button style={s.btn} disabled={loading}>
             {loading ? "Creating account..." : "Create Account"}
           </button>
         </form>
 
         <div style={s.footer}>
           Already have an account?{" "}
-          <button style={s.link} onClick={() => onNavigate("login")}>
+          <button style={s.link} onClick={() => navigate("/login")}>
             Sign in
           </button>
         </div>
+
+        <button style={s.backLink} onClick={() => navigate("/")}>
+          Back to home
+        </button>
       </div>
     </div>
   );

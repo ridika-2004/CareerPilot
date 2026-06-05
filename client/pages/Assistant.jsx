@@ -210,6 +210,30 @@ export default function Assistant() {
   }, []);
 
   // -----------------------------
+  // LOAD MESSAGES FOR ACTIVE SESSION
+  // -----------------------------
+  useEffect(() => {
+    if (!activeId) return;
+
+    const session = sessions.find((s) => s.id === activeId);
+    // Only fetch if messages haven't been loaded yet
+    if (session && session.messages.length > 0) return;
+
+    fetch(`${API}/sessions/${activeId}/`)
+      .then((res) => res.json())
+      .then((data) => {
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.id === activeId
+              ? { ...s, messages: data.messages || [] }
+              : s
+          )
+        );
+      })
+      .catch((err) => console.error("Failed to load session messages:", err));
+  }, [activeId]);
+
+  // -----------------------------
   // CREATE SESSION
   // -----------------------------
   const createSession = async () => {
