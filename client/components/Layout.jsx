@@ -7,6 +7,7 @@ const NAV = [
   { id: "jobs", label: "Job Hunter" },
   { id: "assistant", label: "Assistant" },
   { id: "tracker", label: "Tracker" },
+  { id: "admin", label: "Admin Panel", adminOnly: true },
 ];
 
 const s = {
@@ -112,7 +113,7 @@ export default function Layout({ children }) {
           <span style={s.logoSub}>agentic co-pilot</span>
         </div>
 
-        {NAV.map((n) => (
+        {NAV.filter((n) => !n.adminOnly || user?.role === "admin").map((n) => (
           <button
             key={n.id}
             style={s.navBtn(page === n.id)}

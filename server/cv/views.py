@@ -1,8 +1,11 @@
 import os
+import json
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from django.contrib.auth.models import User
 
+from .models import CVUploadRecord
 from .services.extract_text import extract_text
 from .services.chunk_cv import chunk_cv
 from .services.embed_store import embed_and_store, ask_with_rag
@@ -57,6 +60,22 @@ class CVUploadView(APIView):
 
             sections = list(set(c['section'] for c in stored))
             parsed_cv = parse_cv_structured(raw_text)
+
+            # Resolve username for the record
+            username = ""
+            try:
+                username = User.objects.get(id=int(user_id)).username
+            except Exception:
+                pass
+
+            CVUploadRecord.objects.create(
+                user_id=str(user_id),
+                username=username,
+                file_name=file.name or "unknown",
+                file_type=resolved_type,
+                chunks_stored=len(stored),
+                cv_summary=json.dumps(parsed_cv),
+            )
 
             return Response({
                 'message': 'CV processed successfully',

@@ -12,6 +12,7 @@ import JobHunter from "../pages/JobHunter";
 import Assistant from "../pages/Assistant";
 import Tracker from "../pages/Tracker";
 import Profile from "../pages/Profile";
+import Admin from "../pages/Admin";
 
 function PrivateLayout({ children }) {
   return <Layout>{children}</Layout>;
@@ -101,6 +102,11 @@ export default function App() {
                 <Home />
               </PrivateLayout>
             }
+          />
+
+          <Route
+            path="/admin"
+            element={<Admin />}
           />
 
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

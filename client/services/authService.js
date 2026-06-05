@@ -5,12 +5,14 @@ import API_URL from "../src/config";
 const API = `${API_URL}/api/users`;
 
 const authService = {
-  async register({ username, email, password, full_name }) {
+  async register({ username, email, password, full_name, role, admin_key }) {
     const res = await axios.post(`${API}/register/`, {
       username,
       email,
       password,
       full_name,
+      role: role || "user",
+      admin_key: admin_key || "",
     });
     return res.data;
   },
@@ -43,6 +45,7 @@ const authService = {
     localStorage.setItem("username", data.username);
     localStorage.setItem("email", data.email);
     localStorage.setItem("full_name", data.full_name || "");
+    localStorage.setItem("role", data.role || "user");
   },
 
   clearSession() {
@@ -51,10 +54,19 @@ const authService = {
     localStorage.removeItem("username");
     localStorage.removeItem("email");
     localStorage.removeItem("full_name");
+    localStorage.removeItem("role");
   },
 
   getToken() {
     return localStorage.getItem("token");
+  },
+
+  getRole() {
+    return localStorage.getItem("role") || "user";
+  },
+
+  isAdmin() {
+    return this.getRole() === "admin";
   },
 
   isAuthenticated() {

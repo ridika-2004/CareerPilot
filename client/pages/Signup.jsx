@@ -54,6 +54,16 @@ const s = {
     marginBottom: 18,
     background: "#fafafa",
   },
+  select: {
+    width: "100%",
+    padding: "10px 12px",
+    border: "1px solid #ddd",
+    borderRadius: 6,
+    fontSize: 13,
+    marginBottom: 18,
+    background: "#fafafa",
+    fontFamily: "'Roboto Mono', monospace",
+  },
   btn: {
     width: "100%",
     padding: "12px",
@@ -104,6 +114,12 @@ const s = {
     fontFamily: "'Roboto Mono', monospace",
     textDecoration: "none",
   },
+  adminHint: {
+    fontSize: 11,
+    color: "#888",
+    marginBottom: 18,
+    marginTop: -12,
+  },
 };
 
 export default function Signup() {
@@ -116,6 +132,8 @@ export default function Signup() {
     email: "",
     password: "",
     confirmPassword: "",
+    role: "user",
+    admin_key: "",
   });
 
   const [error, setError] = useState("");
@@ -135,6 +153,11 @@ export default function Signup() {
       return;
     }
 
+    if (form.role === "admin" && !form.admin_key) {
+      setError("Admin secret key is required for admin role.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -143,9 +166,11 @@ export default function Signup() {
         username: form.username,
         email: form.email,
         password: form.password,
+        role: form.role,
+        admin_key: form.admin_key,
       });
 
-      navigate("/dashboard"); // ✅ REAL ROUTE
+      navigate("/dashboard");
     } catch (err) {
       setError(err.response?.data?.error || "Registration failed.");
     } finally {
@@ -207,6 +232,32 @@ export default function Signup() {
             onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
             required
           />
+
+          <label style={s.label}>Role</label>
+          <select
+            style={s.select}
+            value={form.role}
+            onChange={(e) => setForm({ ...form, role: e.target.value })}
+          >
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+          </select>
+
+          {form.role === "admin" && (
+            <>
+              <label style={s.label}>Admin Secret Key</label>
+              <input
+                style={s.input}
+                type="password"
+                value={form.admin_key}
+                onChange={(e) => setForm({ ...form, admin_key: e.target.value })}
+                placeholder="Enter admin secret key"
+              />
+              <div style={s.adminHint}>
+                Contact the system administrator to obtain the key.
+              </div>
+            </>
+          )}
 
           <button style={s.btn} disabled={loading}>
             {loading ? "Creating account..." : "Create Account"}

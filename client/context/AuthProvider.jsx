@@ -26,6 +26,7 @@ export function AuthProvider({ children }) {
       username: data.username,
       email: data.email,
       full_name: data.full_name,
+      role: data.role || "user",
     });
     return data;
   }, []);
@@ -38,6 +39,7 @@ export function AuthProvider({ children }) {
       username: data.username,
       email: data.email,
       full_name: data.full_name,
+      role: data.role || "user",
     });
     return data;
   }, []);
