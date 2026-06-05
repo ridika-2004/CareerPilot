@@ -13,6 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+MONGO_URI = os.getenv("MONGO_URI", "")
 
 # SECURITY
 SECRET_KEY = os.getenv(
@@ -35,10 +36,11 @@ CORS_ALLOWED_ORIGINS = [
     if o.strip()
 ]
 
-# MongoDB (mongoengine)
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/career_assistant")
 from mongoengine import connect
-connect(host=MONGO_URI)
+
+connect(
+    host=MONGO_URI
+)
 
 # Application definition
 INSTALLED_APPS = [
