@@ -36,7 +36,11 @@ const TIPS = [
   { num: "04", text: "Set weekly goals and check the Dashboard daily for AI-powered nudges." },
 ];
 
-export default function Home({ setPage }) {
+import { useNavigate } from "react-router-dom";
+
+export default function Home() {
+  const navigate = useNavigate();
+
   return (
     <div style={s.wrap}>
       <div style={s.hero}>
@@ -52,7 +56,7 @@ export default function Home({ setPage }) {
           <div
             key={p.title}
             style={s.card}
-            onClick={() => setPage?.(p.page)}
+            onClick={() => navigate(`/${p.page}`)}
             onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.06)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
             onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "none"; }}
           >

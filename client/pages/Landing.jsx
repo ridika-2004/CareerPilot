@@ -1,4 +1,5 @@
 import useAuth from "../context/useAuth";
+import { useNavigate } from "react-router-dom";
 
 const s = {
   page: {
@@ -37,7 +38,6 @@ const s = {
     fontSize: 13,
     fontWeight: 500,
     cursor: "pointer",
-    transition: "all 0.15s",
   },
   btnSolid: {
     padding: "8px 20px",
@@ -49,7 +49,6 @@ const s = {
     fontSize: 13,
     fontWeight: 500,
     cursor: "pointer",
-    transition: "all 0.15s",
   },
   hero: {
     maxWidth: 720,
@@ -83,7 +82,6 @@ const s = {
     fontSize: 14,
     fontWeight: 600,
     cursor: "pointer",
-    transition: "background 0.15s",
   },
   btnHeroSecondary: {
     padding: "12px 32px",
@@ -95,7 +93,6 @@ const s = {
     fontSize: 14,
     fontWeight: 500,
     cursor: "pointer",
-    transition: "all 0.15s",
   },
   section: {
     maxWidth: 900,
@@ -121,7 +118,6 @@ const s = {
     border: "1px solid #e5e5e5",
     borderRadius: 8,
     padding: "28px 24px",
-    transition: "box-shadow 0.15s, transform 0.15s",
   },
   cardNum: {
     fontSize: 11,
@@ -182,26 +178,10 @@ const s = {
 };
 
 const FEATURES = [
-  {
-    num: "01",
-    title: "Intelligent Job Hunting",
-    desc: "Search for opportunities in plain English. Our AI finds, filters, and scores jobs against your CV so you only see what matters.",
-  },
-  {
-    num: "02",
-    title: "Profile and CV Intelligence",
-    desc: "Upload your CV once. It gets semantically indexed and queried by every agent in the system, powering all recommendations.",
-  },
-  {
-    num: "03",
-    title: "AI Career Assistant",
-    desc: "Ask anything about your career trajectory. Get grounded, actionable answers drawn from your real profile data.",
-  },
-  {
-    num: "04",
-    title: "Application Tracker and Goals",
-    desc: "Kanban board, calendar view, custom goals, and AI-generated nudges to keep your job search organized and on pace.",
-  },
+  { num: "01", title: "Intelligent Job Hunting", desc: "Search for opportunities in plain English..." },
+  { num: "02", title: "Profile and CV Intelligence", desc: "Upload your CV once..." },
+  { num: "03", title: "AI Career Assistant", desc: "Ask anything about your career..." },
+  { num: "04", title: "Application Tracker and Goals", desc: "Kanban board, calendar view..." },
 ];
 
 const STEPS = [
@@ -211,45 +191,35 @@ const STEPS = [
   "Use the AI Assistant for gap analysis, cover letters, and interview prep.",
 ];
 
-export default function Landing({ onNavigate }) {
+export default function Landing() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <div style={s.page}>
-      {/* Navigation */}
       <nav style={s.nav}>
         <div>
           <span style={s.logo}>CareerPilot</span>
           <span style={s.logoSub}>agentic co-pilot</span>
         </div>
+
         <div style={s.navBtns}>
           {user ? (
-            <button style={s.btnSolid} onClick={() => onNavigate("dashboard")}>
+            <button style={s.btnSolid} onClick={() => navigate("/dashboard")}>
               Go to Dashboard
             </button>
           ) : (
             <>
               <button
                 style={s.btnOutline}
-                onClick={() => onNavigate("login")}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#f5f5f5";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "transparent";
-                }}
+                onClick={() => navigate("/login")}
               >
                 Log In
               </button>
+
               <button
                 style={s.btnSolid}
-                onClick={() => onNavigate("signup")}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#333";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "#1a1a1a";
-                }}
+                onClick={() => navigate("/signup")}
               >
                 Create Account
               </button>
@@ -258,37 +228,27 @@ export default function Landing({ onNavigate }) {
         </div>
       </nav>
 
-      {/* Hero */}
       <section style={s.hero}>
         <h1 style={s.heroTitle}>
           Your career, managed<br />with precision.
         </h1>
+
         <p style={s.heroSub}>
-          CareerPilot is an agentic career co-pilot that combines AI-powered job matching,
-          CV intelligence, personalized guidance, and structured tracking -- all working
-          together to accelerate your professional growth.
+          CareerPilot is an agentic career co-pilot...
         </p>
+
         <div style={s.heroBtns}>
           <button
             style={s.btnHeroPrimary}
-            onClick={() => onNavigate(user ? "dashboard" : "signup")}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "#333"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "#1a1a1a"; }}
+            onClick={() => navigate(user ? "/dashboard" : "/signup")}
           >
             {user ? "Open Dashboard" : "Get Started"}
           </button>
+
           {!user && (
             <button
               style={s.btnHeroSecondary}
-              onClick={() => onNavigate("login")}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "#999";
-                e.currentTarget.style.background = "#fafafa";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "#ccc";
-                e.currentTarget.style.background = "transparent";
-              }}
+              onClick={() => navigate("/login")}
             >
               Sign In
             </button>
@@ -296,23 +256,11 @@ export default function Landing({ onNavigate }) {
         </div>
       </section>
 
-      {/* Features */}
       <section style={s.section}>
         <div style={s.sectionTitle}>Core Capabilities</div>
         <div style={s.grid}>
           {FEATURES.map((f) => (
-            <div
-              key={f.num}
-              style={s.card}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.06)";
-                e.currentTarget.style.transform = "translateY(-2px)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = "none";
-                e.currentTarget.style.transform = "none";
-              }}
-            >
+            <div key={f.num} style={s.card}>
               <div style={s.cardNum}>{f.num}</div>
               <div style={s.cardTitle}>{f.title}</div>
               <div style={s.cardDesc}>{f.desc}</div>
@@ -321,7 +269,6 @@ export default function Landing({ onNavigate }) {
         </div>
       </section>
 
-      {/* How it works */}
       <section style={s.howSection}>
         <div style={s.sectionTitle}>How It Works</div>
         {STEPS.map((text, i) => (
@@ -332,7 +279,6 @@ export default function Landing({ onNavigate }) {
         ))}
       </section>
 
-      {/* Footer */}
       <footer style={s.footer}>
         <span>CareerPilot</span>
         <span>Built for professionals who take their career seriously.</span>

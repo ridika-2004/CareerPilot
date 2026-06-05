@@ -1,5 +1,6 @@
 import { useState } from "react";
 import useAuth from "../context/useAuth";
+import { useNavigate } from "react-router-dom";
 
 const s = {
   page: {
@@ -21,8 +22,6 @@ const s = {
   logo: {
     fontWeight: 700,
     fontSize: 18,
-    letterSpacing: "-0.5px",
-    marginBottom: 4,
     textAlign: "center",
   },
   logoSub: {
@@ -35,7 +34,6 @@ const s = {
     fontSize: 20,
     fontWeight: 600,
     marginBottom: 6,
-    color: "#111",
   },
   subtext: {
     fontSize: 13,
@@ -45,8 +43,6 @@ const s = {
   label: {
     display: "block",
     fontSize: 12,
-    fontWeight: 500,
-    color: "#555",
     marginBottom: 6,
   },
   input: {
@@ -55,10 +51,7 @@ const s = {
     border: "1px solid #ddd",
     borderRadius: 6,
     fontSize: 13,
-    fontFamily: "'Roboto Mono', monospace",
     marginBottom: 18,
-    outline: "none",
-    transition: "border-color 0.15s",
     background: "#fafafa",
   },
   btn: {
@@ -68,18 +61,15 @@ const s = {
     borderRadius: 6,
     background: "#1a1a1a",
     color: "#fff",
-    fontFamily: "'Roboto Mono', monospace",
     fontSize: 14,
     fontWeight: 600,
     cursor: "pointer",
-    transition: "background 0.15s",
     marginTop: 8,
   },
   error: {
     background: "#fef2f2",
     border: "1px solid #fecaca",
-    borderRadius: 6,
-    padding: "10px 12px",
+    padding: 10,
     fontSize: 12,
     color: "#b91c1c",
     marginBottom: 16,
@@ -97,26 +87,26 @@ const s = {
     background: "none",
     border: "none",
     textDecoration: "underline",
-    fontFamily: "'Roboto Mono', monospace",
-    fontSize: 12,
-    padding: 0,
   },
   backLink: {
-    position: "absolute",
-    top: 24,
-    left: 32,
+    display: "block",
+    width: "100%",
+    textAlign: "center",
     fontSize: 12,
     color: "#999",
-    cursor: "pointer",
+    marginTop: 16,
     background: "none",
     border: "none",
+    cursor: "pointer",
     fontFamily: "'Roboto Mono', monospace",
     textDecoration: "none",
   },
 };
 
-export default function Login({ onNavigate }) {
+export default function Login() {
   const { login } = useAuth();
+  const navigate = useNavigate();
+
   const [form, setForm] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -125,9 +115,10 @@ export default function Login({ onNavigate }) {
     e.preventDefault();
     setError("");
     setLoading(true);
+
     try {
       await login(form);
-      onNavigate("dashboard");
+      navigate("/dashboard");   // ✅ REAL ROUTING
     } catch (err) {
       setError(err.response?.data?.error || "Login failed. Please try again.");
     } finally {
@@ -137,9 +128,6 @@ export default function Login({ onNavigate }) {
 
   return (
     <div style={s.page}>
-      <button style={s.backLink} onClick={() => onNavigate("landing")}>
-        Back to home
-      </button>
       <div style={s.card}>
         <div style={s.logo}>CareerPilot</div>
         <div style={s.logoSub}>agentic co-pilot</div>
@@ -153,12 +141,8 @@ export default function Login({ onNavigate }) {
           <label style={s.label}>Username</label>
           <input
             style={s.input}
-            type="text"
             value={form.username}
             onChange={(e) => setForm({ ...form, username: e.target.value })}
-            placeholder="Enter your username"
-            onFocus={(e) => { e.currentTarget.style.borderColor = "#1a1a1a"; e.currentTarget.style.background = "#fff"; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = "#ddd"; e.currentTarget.style.background = "#fafafa"; }}
             required
           />
 
@@ -168,33 +152,24 @@ export default function Login({ onNavigate }) {
             type="password"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
-            placeholder="Enter your password"
-            onFocus={(e) => { e.currentTarget.style.borderColor = "#1a1a1a"; e.currentTarget.style.background = "#fff"; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = "#ddd"; e.currentTarget.style.background = "#fafafa"; }}
             required
           />
 
-          <button
-            type="submit"
-            style={{
-              ...s.btn,
-              opacity: loading ? 0.6 : 1,
-              cursor: loading ? "not-allowed" : "pointer",
-            }}
-            disabled={loading}
-            onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = "#333"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "#1a1a1a"; }}
-          >
+          <button style={s.btn} disabled={loading}>
             {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 
         <div style={s.footer}>
           Don't have an account?{" "}
-          <button style={s.link} onClick={() => onNavigate("signup")}>
+          <button style={s.link} onClick={() => navigate("/signup")}>
             Create one
           </button>
         </div>
+
+        <button style={s.backLink} onClick={() => navigate("/")}>
+          Back to home
+        </button>
       </div>
     </div>
   );
