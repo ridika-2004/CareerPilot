@@ -19,6 +19,7 @@ FALLBACK_MODELS = ["gemini-2.0-flash", "gemini-2.5-flash"]
 def call_gemini(prompt, config=None, max_retries=2):
     """Call Gemini with automatic retry on 429 and model fallback."""
     models_to_try = ["gemini-2.5-flash"] + FALLBACK_MODELS
+    last_error = None
 
     for model in models_to_try:
         for attempt in range(max_retries + 1):
@@ -35,9 +36,10 @@ def call_gemini(prompt, config=None, max_retries=2):
                         contents=prompt
                     )
                 return response
-            except errors.ClientError as e:
+            except Exception as e:
+                last_error = e
                 err_str = str(e)
-                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "quota" in err_str.lower():
                     # Extract retry delay from error message
                     retry_delay = 5 * (attempt + 1)  # default backoff
                     # Try to parse "retry in Xs" from error
@@ -55,12 +57,14 @@ def call_gemini(prompt, config=None, max_retries=2):
                         print(f"Gemini 429 quota exhausted for {model}, trying fallback model...")
                         break
                 else:
+                    # Non-quota error — re-raise immediately
                     raise
     # All models exhausted
     raise Exception(
-        "All Gemini models have exhausted their daily quota. "
-        "The free tier allows 20 requests/day per model. "
-        "Please wait for the quota to reset (resets daily) or upgrade to a paid plan."
+        f"All Gemini models have exhausted their daily quota. "
+        f"Last error: {last_error}. "
+        f"The free tier allows 20 requests/day per model. "
+        f"Please wait for the quota to reset (resets daily) or upgrade to a paid plan."
     )
 
 SYSTEM_PROMPT = """

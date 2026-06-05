@@ -14,6 +14,11 @@ import Tracker from "../pages/Tracker";
 import Profile from "../pages/Profile";
 import Admin from "../pages/Admin";
 
+function SmartRedirect() {
+  const { user } = useAuth();
+  return <Navigate to={user?.role === "admin" ? "/admin" : "/dashboard"} replace />;
+}
+
 function PrivateLayout({ children }) {
   return <Layout>{children}</Layout>;
 }
@@ -109,8 +114,8 @@ export default function App() {
             element={<Admin />}
           />
 
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<SmartRedirect />} />
+          <Route path="*" element={<SmartRedirect />} />
         </>
       )}
     </Routes>

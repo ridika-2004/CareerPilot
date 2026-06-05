@@ -55,6 +55,15 @@ const authService = {
     localStorage.removeItem("email");
     localStorage.removeItem("full_name");
     localStorage.removeItem("role");
+    // Clear all per-user CV data to prevent cross-account leakage
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith("cv_uploaded_") || key.startsWith("cv_upload_result_"))) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
   },
 
   getToken() {

@@ -174,6 +174,9 @@ def send_message(request):
             user_id=user_id
         )
     except Exception as e:
+        import traceback
+        print(f"[Assistant Error] {type(e).__name__}: {e}")
+        traceback.print_exc()
         return JsonResponse(
             {"error": str(e)},
             status=500

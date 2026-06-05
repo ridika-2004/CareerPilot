@@ -19,15 +19,11 @@ const s = {
     paddingBottom: 12,
     borderBottom: "1px solid #e5e5e5",
   },
-  backBtn: {
-    background: "none",
-    border: "1px solid #ddd",
-    borderRadius: 5,
-    padding: "5px 12px",
-    fontSize: 12,
-    cursor: "pointer",
-    fontFamily: "'Roboto Mono', monospace",
-    color: "#555",
+  brandName: {
+    fontWeight: 700,
+    fontSize: 16,
+    color: "#1a1a1a",
+    letterSpacing: "-0.5px",
   },
   logoutBtn: {
     background: "none",
@@ -352,9 +348,7 @@ export default function Admin() {
   return (
     <div style={s.page}>
       <div style={s.topBar}>
-        <button style={s.backBtn} onClick={() => navigate("/dashboard")}>
-          Back to Dashboard
-        </button>
+        <div style={s.brandName}>CareerPilot</div>
         <button
           style={s.logoutBtn}
           onClick={async () => { await logout(); navigate("/"); }}

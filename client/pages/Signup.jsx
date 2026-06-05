@@ -161,7 +161,7 @@ export default function Signup() {
     setLoading(true);
 
     try {
-      await register({
+      const data = await register({
         full_name: form.full_name,
         username: form.username,
         email: form.email,
@@ -170,7 +170,7 @@ export default function Signup() {
         admin_key: form.admin_key,
       });
 
-      navigate("/dashboard");
+      navigate(data.role === "admin" ? "/admin" : "/dashboard");
     } catch (err) {
       setError(err.response?.data?.error || "Registration failed.");
     } finally {

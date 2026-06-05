@@ -117,8 +117,8 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await login(form);
-      navigate("/dashboard");   // ✅ REAL ROUTING
+      const data = await login(form);
+      navigate(data.role === "admin" ? "/admin" : "/dashboard");
     } catch (err) {
       setError(err.response?.data?.error || "Login failed. Please try again.");
     } finally {
