@@ -42,3 +42,71 @@ button {
 input, select, textarea {
   font-family: inherit;
 }
+
+/* Landing page animations */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%      { transform: translateY(-20px) rotate(5deg); }
+}
+
+@keyframes float2 {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  33%      { transform: translateY(-14px) translateX(8px); }
+  66%      { transform: translateY(-24px) translateX(-6px); }
+}
+
+@keyframes float3 {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50%      { transform: translateY(-18px) scale(1.05); }
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(0.8); opacity: 0.5; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.anim-fade-up {
+  animation: fadeUp 0.7s ease-out both;
+}
+
+.anim-fade-up-d1 { animation-delay: 0.1s; }
+.anim-fade-up-d2 { animation-delay: 0.2s; }
+.anim-fade-up-d3 { animation-delay: 0.3s; }
+.anim-fade-up-d4 { animation-delay: 0.4s; }
+.anim-fade-up-d5 { animation-delay: 0.5s; }
+.anim-fade-up-d6 { animation-delay: 0.6s; }
+
+.anim-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.anim-float-delayed {
+  animation: float2 8s ease-in-out 1s infinite;
+}
+
+.anim-float-slow {
+  animation: float3 10s ease-in-out 0.5s infinite;
+}
+
+.anim-float-fast {
+  animation: float2 5s ease-in-out 0.3s infinite;
+}
+
+.anim-float-drift {
+  animation: float 12s ease-in-out 2s infinite;
+}
