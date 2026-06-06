@@ -11,14 +11,14 @@ from .views import (
 
 urlpatterns = [
     path('applications/', JobApplicationView.as_view(), name='tracker-applications'),
-    path('applications/<int:pk>/', JobApplicationView.as_view(), name='tracker-application-detail'),
+    path('applications/<str:pk>/', JobApplicationView.as_view(), name='tracker-application-detail'),
     path('todos/', TodoItemView.as_view(), name='tracker-todos'),
-    path('todos/<int:pk>/', TodoItemView.as_view(), name='tracker-todo-detail'),
+    path('todos/<str:pk>/', TodoItemView.as_view(), name='tracker-todo-detail'),
     path('events/', CalendarEventView.as_view(), name='tracker-events'),
     path('events/<str:pk>/', CalendarEventView.as_view(), name='tracker-event-detail'),
     path('goal/', GoalView.as_view(), name='tracker-goal'),
     path('goals/', CustomGoalView.as_view(), name='tracker-custom-goals'),
-    path('goals/<int:pk>/', CustomGoalView.as_view(), name='tracker-custom-goal-detail'),
+    path('goals/<str:pk>/', CustomGoalView.as_view(), name='tracker-custom-goal-detail'),
     path('dashboard/', DashboardStatsView.as_view(), name='tracker-dashboard'),
     path('nudges/', AINudgesView.as_view(), name='tracker-nudges'),
 ]

@@ -3,13 +3,13 @@ import json
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.contrib.auth.models import User
 
-from .models import CVUploadRecord
+from .mongo_models import CVUploadRecord
 from .services.extract_text import extract_text
 from .services.chunk_cv import chunk_cv
 from .services.embed_store import embed_and_store, ask_with_rag
 from .services.parse_cv import parse_cv_structured
+from users.mongo_models import MongoUser
 
 # Map file extensions to canonical MIME types
 EXT_TO_MIME = {
@@ -64,18 +64,19 @@ class CVUploadView(APIView):
             # Resolve username for the record
             username = ""
             try:
-                username = User.objects.get(id=int(user_id)).username
+                mu = MongoUser.objects.get(id=user_id)
+                username = mu.username
             except Exception:
                 pass
 
-            CVUploadRecord.objects.create(
+            CVUploadRecord(
                 user_id=str(user_id),
                 username=username,
                 file_name=file.name or "unknown",
                 file_type=resolved_type,
                 chunks_stored=len(stored),
                 cv_summary=json.dumps(parsed_cv),
-            )
+            ).save()
 
             return Response({
                 'message': 'CV processed successfully',

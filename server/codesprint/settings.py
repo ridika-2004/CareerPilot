@@ -48,14 +48,10 @@ connect(
 # Application definition
 INSTALLED_APPS = [
     "corsheaders",
-    "django.contrib.admin",
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sessions",
-    "django.contrib.messages",
+    "django.contrib.auth",       # kept for password hashers only
+    "django.contrib.contenttypes", # kept for Django internals
     "django.contrib.staticfiles",
     "rest_framework",
-    "rest_framework.authtoken",
     "users",
     "assistant",
     "cv",
@@ -66,11 +62,7 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -85,8 +77,6 @@ TEMPLATES = [
             "context_processors": [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
-                "django.contrib.auth.context_processors.auth",
-                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
@@ -94,22 +84,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "codesprint.wsgi.application"
 
-# Database
-if IS_VERCEL:
-    # Vercel serverless: use /tmp (writable but ephemeral — resets on each deploy)
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": "/tmp/db.sqlite3",
-        }
+# Database — SQLite kept minimal (ephemeral on Vercel) for Django internals only.
+# ALL user data, auth, tokens, CV records, and tracker data are in MongoDB.
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": "/tmp/db.sqlite3" if IS_VERCEL else BASE_DIR / "db.sqlite3",
     }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
+}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -148,10 +130,10 @@ CHROMA_DB_PATH = "/tmp/chroma_db" if IS_VERCEL else str(BASE_DIR / "chroma_db")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# DRF
+# DRF — MongoDB-backed token authentication
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.TokenAuthentication",
+        "users.mongo_auth.MongoTokenAuthentication",
     ],
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",

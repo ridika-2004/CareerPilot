@@ -1,31 +1,31 @@
 import json as _json
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
-from django.contrib.auth.models import User
 
-from .models import UserProfile
-from cv.models import CVUploadRecord
-from tracker.models import JobApplication, TodoItem, CalendarEvent, TrackerProfile, CustomGoal
+from .mongo_models import MongoUser
+from .mongo_auth import MongoTokenAuthentication, IsAuthenticatedMongo
+from cv.mongo_models import CVUploadRecord
+from tracker.mongo_models import JobApplication, TodoItem, CalendarEvent, TrackerProfile, CustomGoal
 
 
 def _is_admin(user):
     try:
-        return user.profile.role == "admin"
-    except UserProfile.DoesNotExist:
+        return user.role == "admin"
+    except Exception:
         return False
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@authentication_classes([MongoTokenAuthentication])
+@permission_classes([IsAuthenticatedMongo])
 def admin_stats(request):
     if not _is_admin(request.user):
         return Response({"error": "Admin access required."}, status=status.HTTP_403_FORBIDDEN)
 
-    total_users = User.objects.count()
-    total_admins = UserProfile.objects.filter(role="admin").count()
-    total_regular = UserProfile.objects.filter(role="user").count()
+    total_users = MongoUser.objects.count()
+    total_admins = MongoUser.objects(role="admin").count()
+    total_regular = MongoUser.objects(role="user").count()
     total_cv_uploads = CVUploadRecord.objects.count()
     total_job_applications = JobApplication.objects.count()
     total_todos = TodoItem.objects.count()
@@ -45,25 +45,22 @@ def admin_stats(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@authentication_classes([MongoTokenAuthentication])
+@permission_classes([IsAuthenticatedMongo])
 def admin_users(request):
     if not _is_admin(request.user):
         return Response({"error": "Admin access required."}, status=status.HTTP_403_FORBIDDEN)
 
-    users = User.objects.all().order_by("-date_joined")
+    users = MongoUser.objects.order_by("-date_joined")
     data = []
     for u in users:
-        try:
-            role = u.profile.role
-        except UserProfile.DoesNotExist:
-            role = "user"
         data.append({
-            "id": u.id,
+            "id": str(u.id),
             "username": u.username,
             "email": u.email,
-            "full_name": f"{u.first_name} {u.last_name}".strip(),
-            "role": role,
-            "date_joined": u.date_joined.isoformat(),
+            "full_name": u.full_name,
+            "role": u.role,
+            "date_joined": u.date_joined.isoformat() if u.date_joined else "",
             "is_active": u.is_active,
         })
 
@@ -71,12 +68,13 @@ def admin_users(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@authentication_classes([MongoTokenAuthentication])
+@permission_classes([IsAuthenticatedMongo])
 def admin_cv_uploads(request):
     if not _is_admin(request.user):
         return Response({"error": "Admin access required."}, status=status.HTTP_403_FORBIDDEN)
 
-    records = CVUploadRecord.objects.all().order_by("-uploaded_at")
+    records = CVUploadRecord.objects.order_by("-uploaded_at")
     data = []
     for r in records:
         summary = {}
@@ -86,33 +84,34 @@ def admin_cv_uploads(request):
             except Exception:
                 summary = {}
         data.append({
-            "id": r.id,
+            "id": str(r.id),
             "user_id": r.user_id,
             "username": r.username,
             "file_name": r.file_name,
             "file_type": r.file_type,
             "chunks_stored": r.chunks_stored,
-            "uploaded_at": r.uploaded_at.isoformat(),
+            "uploaded_at": r.uploaded_at.isoformat() if r.uploaded_at else "",
             "cv_summary": summary,
         })
     return Response(data)
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@authentication_classes([MongoTokenAuthentication])
+@permission_classes([IsAuthenticatedMongo])
 def admin_job_applications(request):
     if not _is_admin(request.user):
         return Response({"error": "Admin access required."}, status=status.HTTP_403_FORBIDDEN)
 
-    apps = JobApplication.objects.all().order_by("-date")
+    apps = JobApplication.objects.order_by("-date")
     data = [
         {
-            "id": a.id,
+            "id": str(a.id),
             "user_id": a.user_id,
             "role": a.role,
             "company": a.company,
             "status": a.status,
-            "date": a.date.isoformat(),
+            "date": a.date.isoformat() if a.date else "",
         }
         for a in apps
     ]
@@ -120,7 +119,8 @@ def admin_job_applications(request):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@authentication_classes([MongoTokenAuthentication])
+@permission_classes([IsAuthenticatedMongo])
 def admin_change_role(request):
     if not _is_admin(request.user):
         return Response({"error": "Admin access required."}, status=status.HTTP_403_FORBIDDEN)
@@ -132,17 +132,16 @@ def admin_change_role(request):
         return Response({"error": "Role must be 'user' or 'admin'."}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        target_user = User.objects.get(id=target_user_id)
-    except User.DoesNotExist:
+        target_user = MongoUser.objects.get(id=target_user_id)
+    except MongoUser.DoesNotExist:
         return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
 
-    profile, _ = UserProfile.objects.get_or_create(user=target_user)
-    profile.role = new_role
-    profile.save()
+    target_user.role = new_role
+    target_user.save()
 
     return Response({
         "message": f"Role updated to '{new_role}' for {target_user.username}.",
-        "user_id": target_user.id,
+        "user_id": str(target_user.id),
         "username": target_user.username,
         "role": new_role,
     })

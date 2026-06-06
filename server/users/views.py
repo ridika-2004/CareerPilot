@@ -1,23 +1,23 @@
 import os
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.authtoken.models import Token
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
-from django.contrib.auth.models import User
-from django.contrib.auth import authenticate
 
-from .models import UserProfile
+from .mongo_models import MongoUser, MongoToken
+from .mongo_auth import MongoTokenAuthentication, IsAuthenticatedMongo
 
 
 def _get_role(user):
+    """user is a MongoUserWrapper — access .role directly."""
     try:
-        return user.profile.role
-    except UserProfile.DoesNotExist:
+        return user.role
+    except Exception:
         return "user"
 
 
 @api_view(["POST"])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def register(request):
     username = request.data.get("username", "").strip()
@@ -47,35 +47,36 @@ def register(request):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-    if User.objects.filter(username=username).exists():
+    if MongoUser.objects(username=username).count() > 0:
         return Response(
             {"error": "Username already taken."},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    if User.objects.filter(email=email).exists():
+    if MongoUser.objects(email=email).count() > 0:
         return Response(
             {"error": "Email already registered."},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    user = User.objects.create_user(
+    user = MongoUser(
         username=username,
         email=email,
-        password=password,
-        first_name=full_name.split(" ")[0] if full_name else "",
-        last_name=" ".join(full_name.split(" ")[1:]) if full_name else "",
+        full_name=full_name,
+        role=role,
     )
-    UserProfile.objects.create(user=user, role=role)
-    token, _ = Token.objects.get_or_create(user=user)
+    user.set_password(password)
+    user.save()
+
+    token = MongoToken.create_for_user(user)
 
     return Response(
         {
             "token": token.key,
-            "user_id": user.id,
+            "user_id": str(user.id),
             "username": user.username,
             "email": user.email,
-            "full_name": f"{user.first_name} {user.last_name}".strip(),
+            "full_name": user.full_name,
             "role": role,
         },
         status=status.HTTP_201_CREATED,
@@ -83,6 +84,7 @@ def register(request):
 
 
 @api_view(["POST"])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def login(request):
     username = request.data.get("username", "").strip()
@@ -95,56 +97,60 @@ def login(request):
         )
 
     # Try username first, then fall back to email
-    user = authenticate(username=username, password=password)
+    user = MongoUser.objects(username=username).first()
     if user is None:
-        try:
-            user_obj = User.objects.get(email=username)
-            user = authenticate(username=user_obj.username, password=password)
-        except User.DoesNotExist:
-            user = None
+        user = MongoUser.objects(email=username).first()
 
-    if user is None:
+    if user is None or not user.check_password(password):
         return Response(
             {"error": "Invalid credentials."},
             status=status.HTTP_401_UNAUTHORIZED,
         )
 
-    token, _ = Token.objects.get_or_create(user=user)
-    role = _get_role(user)
+    if not user.is_active:
+        return Response(
+            {"error": "Account is disabled."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    token = MongoToken.create_for_user(user)
 
     return Response(
         {
             "token": token.key,
-            "user_id": user.id,
+            "user_id": str(user.id),
             "username": user.username,
             "email": user.email,
-            "full_name": f"{user.first_name} {user.last_name}".strip(),
-            "role": role,
+            "full_name": user.full_name,
+            "role": user.role,
         }
     )
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@authentication_classes([MongoTokenAuthentication])
+@permission_classes([IsAuthenticatedMongo])
 def me(request):
     user = request.user
-    role = _get_role(user)
     return Response(
         {
             "user_id": user.id,
             "username": user.username,
             "email": user.email,
-            "full_name": f"{user.first_name} {user.last_name}".strip(),
-            "role": role,
+            "full_name": user.full_name,
+            "role": _get_role(user),
         }
     )
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@authentication_classes([MongoTokenAuthentication])
+@permission_classes([IsAuthenticatedMongo])
 def logout(request):
     try:
-        request.user.auth_token.delete()
+        # request.auth is the MongoToken from authentication
+        if request.auth:
+            request.auth.delete()
     except Exception:
         pass
     return Response({"detail": "Logged out."})

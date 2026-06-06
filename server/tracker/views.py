@@ -4,13 +4,23 @@ from rest_framework import status
 from datetime import datetime, timedelta
 import chromadb
 
-from .models import JobApplication, TodoItem, CalendarEvent, TrackerProfile, CustomGoal
+from .mongo_models import JobApplication, TodoItem, CalendarEvent, TrackerProfile, CustomGoal
 
 from django.conf import settings as django_settings
 
+# Helper to get or create tracker profile
+def get_or_create_profile(user_id):
+    profile = TrackerProfile.objects(user_id=user_id).first()
+    if profile is None:
+        profile = TrackerProfile(user_id=user_id, goal_target=5, streak=1, last_activity_date=datetime.utcnow().date())
+        profile.save()
+        return profile, True
+    return profile, False
+
+
 # Helper to get/update user streak
 def get_and_update_streak(user_id):
-    profile, created = TrackerProfile.objects.get_or_create(user_id=user_id)
+    profile, created = get_or_create_profile(user_id)
     today = datetime.now().date()
     if created:
         profile.streak = 1
@@ -42,7 +52,7 @@ def get_skills_count(user_id):
         if skills_data and skills_data["documents"]:
             for doc in skills_data["documents"]:
                 # Normalize separators: newlines, bullets, pipes, semicolons, commas
-                normalized = doc.replace("\n", ",").replace("•", ",").replace("·", ",")
+                normalized = doc.replace("\n", ",").replace("\u2022", ",").replace("\u00b7", ",")
                 normalized = normalized.replace("|", ",").replace(";", ",")
                 parts = [p.strip() for p in normalized.split(",") if p.strip()]
                 # Filter out section header lines like "SKILLS", "Technical Skills", etc.
@@ -63,13 +73,13 @@ class JobApplicationView(APIView):
         user_id = request.query_params.get("user_id")
         if not user_id:
             return Response({"error": "user_id required"}, status=400)
-        apps = JobApplication.objects.filter(user_id=user_id).order_by("-id")
+        apps = JobApplication.objects(user_id=user_id).order_by("-id")
         data = [{
-            "id": a.id,
+            "id": str(a.id),
             "role": a.role,
             "company": a.company,
             "status": a.status,
-            "date": a.date.strftime("%b %d")
+            "date": a.date.strftime("%b %d") if a.date else ""
         } for a in apps]
         return Response(data)
 
@@ -82,26 +92,27 @@ class JobApplicationView(APIView):
         if not user_id or not role or not company:
             return Response({"error": "Missing fields"}, status=400)
 
-        app = JobApplication.objects.create(
+        app = JobApplication(
             user_id=user_id,
             role=role,
             company=company,
             status=status_val
         )
+        app.save()
         # Update profile activity date to maintain streak
         get_and_update_streak(user_id)
 
         return Response({
-            "id": app.id,
+            "id": str(app.id),
             "role": app.role,
             "company": app.company,
             "status": app.status,
-            "date": app.date.strftime("%b %d")
+            "date": app.date.strftime("%b %d") if app.date else ""
         }, status=201)
 
     def put(self, request, pk):
         try:
-            app = JobApplication.objects.get(pk=pk)
+            app = JobApplication.objects.get(id=pk)
         except JobApplication.DoesNotExist:
             return Response({"error": "Not found"}, status=404)
 
@@ -117,16 +128,16 @@ class JobApplicationView(APIView):
         get_and_update_streak(user_id)
 
         return Response({
-            "id": app.id,
+            "id": str(app.id),
             "role": app.role,
             "company": app.company,
             "status": app.status,
-            "date": app.date.strftime("%b %d")
+            "date": app.date.strftime("%b %d") if app.date else ""
         })
 
     def delete(self, request, pk):
         try:
-            app = JobApplication.objects.get(pk=pk)
+            app = JobApplication.objects.get(id=pk)
         except JobApplication.DoesNotExist:
             return Response({"error": "Not found"}, status=404)
 
@@ -143,9 +154,9 @@ class TodoItemView(APIView):
         user_id = request.query_params.get("user_id")
         if not user_id:
             return Response({"error": "user_id required"}, status=400)
-        todos = TodoItem.objects.filter(user_id=user_id).order_by("-id")
+        todos = TodoItem.objects(user_id=user_id).order_by("-id")
         data = [{
-            "id": t.id,
+            "id": str(t.id),
             "text": t.text,
             "completed": t.completed
         } for t in todos]
@@ -157,18 +168,19 @@ class TodoItemView(APIView):
         if not user_id or not text:
             return Response({"error": "Missing fields"}, status=400)
 
-        todo = TodoItem.objects.create(user_id=user_id, text=text)
+        todo = TodoItem(user_id=user_id, text=text)
+        todo.save()
         get_and_update_streak(user_id)
 
         return Response({
-            "id": todo.id,
+            "id": str(todo.id),
             "text": todo.text,
             "completed": todo.completed
         }, status=201)
 
     def put(self, request, pk):
         try:
-            todo = TodoItem.objects.get(pk=pk)
+            todo = TodoItem.objects.get(id=pk)
         except TodoItem.DoesNotExist:
             return Response({"error": "Not found"}, status=404)
 
@@ -183,14 +195,14 @@ class TodoItemView(APIView):
         get_and_update_streak(user_id)
 
         return Response({
-            "id": todo.id,
+            "id": str(todo.id),
             "text": todo.text,
             "completed": todo.completed
         })
 
     def delete(self, request, pk):
         try:
-            todo = TodoItem.objects.get(pk=pk)
+            todo = TodoItem.objects.get(id=pk)
         except TodoItem.DoesNotExist:
             return Response({"error": "Not found"}, status=404)
 
@@ -209,21 +221,21 @@ class CalendarEventView(APIView):
             return Response({"error": "user_id required"}, status=400)
 
         # Get custom events
-        events = CalendarEvent.objects.filter(user_id=user_id)
+        events = CalendarEvent.objects(user_id=user_id)
         events_data = [{
             "id": f"event_{e.id}",
             "title": e.title,
-            "date": e.date.strftime("%Y-%m-%d"),
+            "date": e.date.strftime("%Y-%m-%d") if e.date else "",
             "event_type": e.event_type
         } for e in events]
 
         # Automatically synthesize events from Job Applications
-        apps = JobApplication.objects.filter(user_id=user_id)
+        apps = JobApplication.objects(user_id=user_id)
         for a in apps:
             events_data.append({
                 "id": f"app_{a.id}",
                 "title": f"{a.role} application at {a.company}",
-                "date": a.date.strftime("%Y-%m-%d"),
+                "date": a.date.strftime("%Y-%m-%d") if a.date else "",
                 "event_type": "interview" if a.status == "Interviewing" else "deadline" if a.status == "Applied" else "other"
             })
 
@@ -243,27 +255,28 @@ class CalendarEventView(APIView):
         except ValueError:
             return Response({"error": "Invalid date format, use YYYY-MM-DD"}, status=400)
 
-        event = CalendarEvent.objects.create(
+        event = CalendarEvent(
             user_id=user_id,
             title=title,
             date=date_val,
             event_type=event_type
         )
+        event.save()
         get_and_update_streak(user_id)
 
         return Response({
             "id": f"event_{event.id}",
             "title": event.title,
-            "date": event.date.strftime("%Y-%m-%d"),
+            "date": event.date.strftime("%Y-%m-%d") if event.date else "",
             "event_type": event.event_type
         }, status=201)
 
     def delete(self, request, pk):
         # We check if it is a synthetic app event (starts with app_) or custom event (starts with event_)
-        # We can extract the actual numeric ID from pk
-        clean_id = pk.split("_")[-1]
+        # We can extract the actual ID from pk
+        clean_id = pk.split("_", 1)[-1] if "_" in pk else pk
         try:
-            event = CalendarEvent.objects.get(pk=clean_id)
+            event = CalendarEvent.objects.get(id=clean_id)
         except CalendarEvent.DoesNotExist:
             return Response({"error": "Not found"}, status=404)
 
@@ -280,7 +293,7 @@ class GoalView(APIView):
         user_id = request.query_params.get("user_id")
         if not user_id:
             return Response({"error": "user_id required"}, status=400)
-        profile, _ = TrackerProfile.objects.get_or_create(user_id=user_id)
+        profile, _ = get_or_create_profile(user_id)
         return Response({"goal_target": profile.goal_target})
 
     def post(self, request):
@@ -289,7 +302,7 @@ class GoalView(APIView):
         if not user_id or target is None:
             return Response({"error": "Missing fields"}, status=400)
 
-        profile, _ = TrackerProfile.objects.get_or_create(user_id=user_id)
+        profile, _ = get_or_create_profile(user_id)
         profile.goal_target = int(target)
         profile.save()
 
@@ -301,9 +314,9 @@ class CustomGoalView(APIView):
         user_id = request.query_params.get("user_id")
         if not user_id:
             return Response({"error": "user_id required"}, status=400)
-        goals = CustomGoal.objects.filter(user_id=user_id).order_by("-created_at")
+        goals = CustomGoal.objects(user_id=user_id).order_by("-created_at")
         return Response([{
-            "id": g.id,
+            "id": str(g.id),
             "text": g.text,
             "deadline": g.deadline.strftime("%Y-%m-%d") if g.deadline else None,
             "completed": g.completed,
@@ -321,13 +334,19 @@ class CustomGoalView(APIView):
                 deadline = datetime.strptime(deadline_str, "%Y-%m-%d").date()
             except ValueError:
                 return Response({"error": "Invalid date format"}, status=400)
-        g = CustomGoal.objects.create(user_id=user_id, text=text, deadline=deadline)
+        g = CustomGoal(user_id=user_id, text=text, deadline=deadline)
+        g.save()
         get_and_update_streak(user_id)
-        return Response({"id": g.id, "text": g.text, "deadline": deadline_str, "completed": g.completed}, status=201)
+        return Response({
+            "id": str(g.id),
+            "text": g.text,
+            "deadline": deadline_str,
+            "completed": g.completed
+        }, status=201)
 
     def put(self, request, pk):
         try:
-            g = CustomGoal.objects.get(pk=pk)
+            g = CustomGoal.objects.get(id=pk)
         except CustomGoal.DoesNotExist:
             return Response({"error": "Not found"}, status=404)
         user_id = request.data.get("user_id")
@@ -336,11 +355,16 @@ class CustomGoalView(APIView):
         g.completed = request.data.get("completed", g.completed)
         g.text = request.data.get("text", g.text)
         g.save()
-        return Response({"id": g.id, "text": g.text, "deadline": g.deadline.strftime("%Y-%m-%d") if g.deadline else None, "completed": g.completed})
+        return Response({
+            "id": str(g.id),
+            "text": g.text,
+            "deadline": g.deadline.strftime("%Y-%m-%d") if g.deadline else None,
+            "completed": g.completed
+        })
 
     def delete(self, request, pk):
         try:
-            g = CustomGoal.objects.get(pk=pk)
+            g = CustomGoal.objects.get(id=pk)
         except CustomGoal.DoesNotExist:
             return Response({"error": "Not found"}, status=404)
         user_id = request.query_params.get("user_id") or request.data.get("user_id")
@@ -357,12 +381,12 @@ class DashboardStatsView(APIView):
             return Response({"error": "user_id required"}, status=400)
 
         # 1. Total applications sent
-        total_apps = JobApplication.objects.filter(user_id=user_id).count()
+        total_apps = JobApplication.objects(user_id=user_id).count()
 
         # 2. Dynamic weekly goal progress (apps added in last 7 days)
-        profile, _ = TrackerProfile.objects.get_or_create(user_id=user_id)
+        profile, _ = get_or_create_profile(user_id)
         seven_days_ago = datetime.now().date() - timedelta(days=7)
-        weekly_apps_count = JobApplication.objects.filter(
+        weekly_apps_count = JobApplication.objects(
             user_id=user_id,
             date__gte=seven_days_ago
         ).count()
@@ -374,7 +398,7 @@ class DashboardStatsView(APIView):
         streak = get_and_update_streak(user_id)
 
         # 5. Additional counter for interviews
-        interviews_count = JobApplication.objects.filter(
+        interviews_count = JobApplication.objects(
             user_id=user_id,
             status="Interviewing"
         ).count()
@@ -400,28 +424,28 @@ class AINudgesView(APIView):
         seven_days_ago = today - timedelta(days=7)
 
         # 1. No applications this week
-        weekly_apps = JobApplication.objects.filter(user_id=user_id, date__gte=seven_days_ago).count()
+        weekly_apps = JobApplication.objects(user_id=user_id, date__gte=seven_days_ago).count()
         if weekly_apps == 0:
             nudges.append({
                 "type": "warning",
-                "icon": "📭",
-                "message": "You haven't applied to any jobs this week. Stay consistent — aim for at least 1 application today.",
+                "icon": "\U0001f4ed",
+                "message": "You haven't applied to any jobs this week. Stay consistent \u2014 aim for at least 1 application today.",
                 "action": "Go to Job Hunter"
             })
         elif weekly_apps < 3:
             nudges.append({
                 "type": "info",
-                "icon": "📊",
+                "icon": "\U0001f4ca",
                 "message": f"You've applied to {weekly_apps} job(s) this week. Keep the momentum going to hit your weekly goal!",
                 "action": None
             })
 
         # 2. Check for interviews this week
-        interviews = JobApplication.objects.filter(user_id=user_id, status="Interviewing").count()
+        interviews = JobApplication.objects(user_id=user_id, status="Interviewing").count()
         if interviews > 0:
             nudges.append({
                 "type": "success",
-                "icon": "🎯",
+                "icon": "\U0001f3af",
                 "message": f"You have {interviews} active interview(s). Prepare with mock Q&A and review the job descriptions.",
                 "action": "Open Tracker"
             })
@@ -438,7 +462,7 @@ class AINudgesView(APIView):
             if not cv_data["ids"]:
                 nudges.append({
                     "type": "warning",
-                    "icon": "📄",
+                    "icon": "\U0001f4c4",
                     "message": "Your CV hasn't been uploaded yet. Upload it so AI can personalize all recommendations.",
                     "action": "Upload CV"
                 })
@@ -446,31 +470,31 @@ class AINudgesView(APIView):
             pass
 
         # 4. Streak reminder
-        profile, _ = TrackerProfile.objects.get_or_create(user_id=user_id)
+        profile, _ = get_or_create_profile(user_id)
         if profile.streak >= 3:
             nudges.append({
                 "type": "success",
-                "icon": "🔥",
-                "message": f"You're on a {profile.streak}-day streak! Don't break it — do something career-related today.",
+                "icon": "\U0001f525",
+                "message": f"You're on a {profile.streak}-day streak! Don't break it \u2014 do something career-related today.",
                 "action": None
             })
 
         # 5. Check todos — if more than 3 incomplete tasks
-        incomplete_todos = TodoItem.objects.filter(user_id=user_id, completed=False).count()
+        incomplete_todos = TodoItem.objects(user_id=user_id, completed=False).count()
         if incomplete_todos > 3:
             nudges.append({
                 "type": "info",
-                "icon": "✅",
-                "message": f"You have {incomplete_todos} pending tasks. Try completing 2–3 today to build momentum.",
+                "icon": "\u2705",
+                "message": f"You have {incomplete_todos} pending tasks. Try completing 2\u20133 today to build momentum.",
                 "action": "Open Tasks"
             })
 
         # 6. Offer received — celebrate
-        offers = JobApplication.objects.filter(user_id=user_id, status="Offer").count()
+        offers = JobApplication.objects(user_id=user_id, status="Offer").count()
         if offers > 0:
             nudges.append({
                 "type": "success",
-                "icon": "🎉",
+                "icon": "\U0001f389",
                 "message": f"Congratulations! You have {offers} job offer(s). Review them carefully before deciding.",
                 "action": None
             })
@@ -479,7 +503,7 @@ class AINudgesView(APIView):
         if not nudges:
             nudges.append({
                 "type": "info",
-                "icon": "💡",
+                "icon": "\U0001f4a1",
                 "message": "Keep going! Consistent daily effort is the key to landing your next role. Check your goals.",
                 "action": "Open Goals"
             })

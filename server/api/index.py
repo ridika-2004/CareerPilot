@@ -12,7 +12,8 @@ os.environ["VERCEL"] = "1"
 import django
 django.setup()
 
-# Run migrations on cold start (SQLite is in /tmp, fresh on each deploy)
+# Run minimal migrations on cold start (SQLite is in /tmp, fresh on each deploy)
+# All user data lives in MongoDB — SQLite is only for Django internals
 try:
     from django.core.management import call_command
     call_command("migrate", "--run-syncdb", verbosity=0)
