@@ -73,7 +73,7 @@ export default function JobHunter() {
   return (
     <div>
       <div style={s.h1}>Job Hunter</div>
-      <div style={s.sub}>Search in plain English. The agent finds, filters, and scores against your CV.</div>
+      <div style={s.sub}>Search real jobs from the web. Results ranked by how well they match your query + CV.</div>
 
       <div style={s.row}>
         <input
@@ -89,17 +89,19 @@ export default function JobHunter() {
         </button>
       </div>
 
-      {loading && <div style={s.loading}>Hunting jobs and scoring fit against your CV...</div>}
+      {loading && <div style={s.loading}>Searching real job boards, analyzing query match, and scoring against your CV...</div>}
 
       {error && <div style={s.error}>{error}</div>}
 
       {!loading && searched && !error && results.length === 0 && (
-        <div style={s.empty}>No jobs found matching your profile. Try a broader query or upload your CV.</div>
+        <div style={s.empty}>No real jobs found for this query. Try broader terms like "software engineer remote" or "data analyst".</div>
       )}
 
       {!loading && searched && !error && results.length > 0 && (
         <div>
-          <div style={{ color: "#888", fontSize: 12, marginBottom: 12 }}>{results.length} results — sorted by fit</div>
+          <div style={{ color: "#888", fontSize: 12, marginBottom: 12 }}>
+            {results.length} real jobs found — ranked by query match & CV fit
+          </div>
           {results.map((job, i) => <JobCard key={i} job={job} />)}
         </div>
       )}
