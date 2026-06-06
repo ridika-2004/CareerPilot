@@ -473,9 +473,12 @@ Return ONLY the JSON array, no markdown, no code fences, no extra text."""
         })
 
     # 9. Sort by composite score descending (query intent + CV fit combined)
-    # Jobs with scores come first, unscored jobs go last
     jobs_out.sort(
         key=lambda x: -(x["composite"] if x["composite"] is not None else -1)
     )
+
+    # 10. Since user has a CV, only return jobs that were actually scored by Gemini
+    #     (unscored jobs = Gemini didn't assess them, so showing "Upload CV" is wrong)
+    jobs_out = [j for j in jobs_out if j["composite"] is not None]
 
     return {"jobs": jobs_out}

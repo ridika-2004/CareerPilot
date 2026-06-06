@@ -5,6 +5,22 @@ import API_URL from "../src/config";
 
 const API = `${API_URL}/api/assistant`;
 
+const STORAGE_KEY = (userId) => `jobhunter_${userId}`;
+
+function loadCache(userId) {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY(userId));
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return null;
+}
+
+function saveCache(userId, query, results) {
+  try {
+    localStorage.setItem(STORAGE_KEY(userId), JSON.stringify({ query, results, ts: Date.now() }));
+  } catch { /* ignore */ }
+}
+
 const s = {
   h1: { fontSize: 20, fontWeight: 700, marginBottom: 4 },
   sub: { color: "#888", fontSize: 13, marginBottom: 24 },
@@ -31,10 +47,14 @@ const getUserId = (user) => {
 
 export default function JobHunter() {
   const { user } = useAuth();
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState([]);
+  const userId = getUserId(user);
+
+  // Restore cached results on mount
+  const cached = loadCache(userId);
+  const [query, setQuery] = useState(cached?.query || "");
+  const [results, setResults] = useState(cached?.results || []);
   const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
+  const [searched, setSearched] = useState(!!cached?.results?.length);
   const [error, setError] = useState("");
 
   const search = async () => {
@@ -63,6 +83,7 @@ export default function JobHunter() {
       }
 
       setResults(data.jobs || []);
+      saveCache(userId, query.trim(), data.jobs || []);
     } catch {
       setError("Network error. Make sure the server is running.");
     } finally {
@@ -97,14 +118,21 @@ export default function JobHunter() {
         <div style={s.empty}>No real jobs found for this query. Try broader terms like "software engineer remote" or "data analyst".</div>
       )}
 
-      {!loading && searched && !error && results.length > 0 && (
-        <div>
-          <div style={{ color: "#888", fontSize: 12, marginBottom: 12 }}>
-            {results.length} real jobs found — ranked by query match & CV fit
+      {!loading && searched && !error && (() => {
+        // Only show jobs that have been scored (have fit or relevance)
+        const scored = results.filter(j => j.fit != null || j.relevance != null);
+        if (scored.length === 0) {
+          return <div style={s.empty}>No matching jobs found for this query. Try broader terms like "software engineer" or "data analyst".</div>;
+        }
+        return (
+          <div>
+            <div style={{ color: "#888", fontSize: 12, marginBottom: 12 }}>
+              {scored.length} jobs matched to your CV — ranked by query match & CV fit
+            </div>
+            {scored.map((job, i) => <JobCard key={i} job={job} />)}
           </div>
-          {results.map((job, i) => <JobCard key={i} job={job} />)}
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
