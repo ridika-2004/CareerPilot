@@ -188,7 +188,8 @@ Create a `.env` file inside `backend/`:
 ```env
 SECRET_KEY=your_django_secret_key
 DEBUG=True
-DATABASE_URL=mongoDb//:localhost:27017/career_pilot
+DATABASE_URL=your_mongo_atlas_url
+ADMIN_SECRET_KEY=ad123
 GOOGLE_API_KEY=your_openai_api_key
 ```
 
