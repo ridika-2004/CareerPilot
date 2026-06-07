@@ -159,7 +159,7 @@ User
 
 
 - Python 3.11+
-- Node.js 18+
+- React.js 18+
 - MongoDB (or cluster DB)
 - API key for your chosen LLM provider
 
