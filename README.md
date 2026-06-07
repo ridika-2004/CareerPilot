@@ -17,9 +17,7 @@
 
 Built for **Codesprint 2026** · Powered by [Poridhi.io](https://poridhi.io)
 
-
-![CareerPilot Landing Page](client/src/assets/landing.png)
-
+<img width="953" height="412" alt="Screenshot 2026-06-07 200432" src="https://github.com/user-attachments/assets/ff5641d9-0b25-4654-8e27-3b39f3614676" />
 
 ## Overview
 
@@ -168,7 +166,7 @@ User
 
 
 ```bash
-git clone https://github.com/your-username/careerpilot.git
+git clone https://github.com/AfrinJahanEra/CareerPilot.git
 cd careerpilot
 ```
 
