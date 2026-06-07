@@ -1,0 +1,77 @@
+================================================================================
+  CAREERPILOT — EVALUATION TEST SUITE RESULTS
+================================================================================
+
+[PASS]  TC-1: strip_html — removes HTML tags and collapses whitespace
+         Input    : <p>Senior <b>Python</b> Developer &nbsp; with <i>AI</i> experience</p>
+         Expected : Senior Python Developer with AI experience
+         Actual   : Senior Python Developer with AI experience
+         Verdict  : PASS
+
+[PASS]  TC-2: strip_html — returns empty string for empty input
+         Input    : 
+         Expected : 
+         Actual   : 
+         Verdict  : PASS
+
+[PASS]  TC-3: chunk_cv — splits CV text into correct section groups
+         Input    : John Doe
+Software Engineer
+
+Education
+B.Sc. in Computer Scie...
+         Expected : ['other', 'education', 'experience', 'skills']
+         Actual   : ['other', 'education', 'experience', 'skills']
+         Verdict  : PASS
+
+[PASS]  TC-4: _local_parse — extracts name, email, title, and skills from raw CV text
+         Input    : Alice Johnson
+Full-Stack Developer
+alice.johnson@gmail.com
+
+Technical Skills: Py...
+         Expected : {'name': 'Alice Johnson', 'email': 'alice.johnson@gmail.com', 'title': 'Full-Stack Developer', 'skills_subset': {'django', 'javascript', 'python', 'docker', 'react', 'sql'}}
+         Actual   : {'name': 'Alice Johnson', 'email': 'alice.johnson@gmail.com', 'title': 'Full-Stack Developer', 'skills_subset': {'javascript', 'docker', 'react', 'django', 'python', 'sql'}}
+         Verdict  : PASS
+
+[PASS]  TC-5: _extract_location_keywords — extracts city 'Dhaka' from natural-language query
+         Input    : Find me Python developer jobs in Dhaka
+         Expected : True
+         Actual   : True
+         Verdict  : PASS
+
+[PASS]  TC-6: _extract_location_keywords — detects 'remote' as a work-mode keyword
+         Input    : remote machine learning engineer jobs
+         Expected : True
+         Actual   : True
+         Verdict  : PASS
+
+[PASS]  TC-7: _classify_location_match — returns 'exact' when job city matches query keyword
+         Input    : ('Dhaka, Bangladesh', 'Python Developer', ['dhaka'])
+         Expected : exact
+         Actual   : exact
+         Verdict  : PASS
+
+[PASS]  TC-8: _classify_location_match — returns 'remote' for a remote job when query city doesn't match
+         Input    : ('Remote — Worldwide', 'ML Engineer', ['berlin'])
+         Expected : remote
+         Actual   : remote
+         Verdict  : PASS
+
+[PASS]  TC-9: _classify_location_match — returns 'other' for non-matching non-remote job location
+         Input    : ('New York, USA', 'Frontend Developer', ['dhaka'])
+         Expected : other
+         Actual   : other
+         Verdict  : PASS
+
+[PASS]  TC-10: chunk_cv — splits a 650-word section into exactly 3 sub-chunks (≤300 words each)
+         Input    : Experience section with 650 words
+         Expected : 3
+         Actual   : 3
+         Verdict  : PASS
+
+--------------------------------------------------------------------------------
+  TOTAL: 10  |  PASSED: 10  |  FAILED: 0
+--------------------------------------------------------------------------------
+  ALL TEST CASES PASSED.
+================================================================================
