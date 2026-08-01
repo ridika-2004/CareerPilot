@@ -7,6 +7,7 @@ urlpatterns = [
     path("login/", views.login, name="login"),
     path("me/", views.me, name="me"),
     path("logout/", views.logout, name="logout"),
+    path("update-profile/", views.update_profile, name="update-profile"),
     # Admin endpoints
     path("admin/stats/", admin_views.admin_stats, name="admin-stats"),
     path("admin/users/", admin_views.admin_users, name="admin-users"),

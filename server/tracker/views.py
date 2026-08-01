@@ -3,6 +3,10 @@ from rest_framework.response import Response
 from rest_framework import status
 from datetime import datetime, timedelta
 import chromadb
+import requests
+import json
+import re
+from bs4 import BeautifulSoup
 
 from .mongo_models import JobApplication, TodoItem, CalendarEvent, TrackerProfile, CustomGoal
 
@@ -47,7 +51,7 @@ def get_skills_count(user_id):
             name="cv_chunks",
             metadata={"hnsw:space": "cosine"}
         )
-        skills_data = collection.get(where={"user_id": user_id, "section": "skills"})
+        skills_data = collection.get(where={"$and": [{"user_id": user_id}, {"section": "skills"}]})
         skills_count = 0
         if skills_data and skills_data["documents"]:
             for doc in skills_data["documents"]:
@@ -88,6 +92,9 @@ class JobApplicationView(APIView):
         role = request.data.get("role")
         company = request.data.get("company")
         status_val = request.data.get("status", "Applied")
+        description = request.data.get("description", "")
+        requirements = request.data.get("requirements", [])
+        source_url = request.data.get("source_url", "")
 
         if not user_id or not role or not company:
             return Response({"error": "Missing fields"}, status=400)
@@ -96,7 +103,10 @@ class JobApplicationView(APIView):
             user_id=user_id,
             role=role,
             company=company,
-            status=status_val
+            status=status_val,
+            description=description,
+            requirements=requirements,
+            source_url=source_url,
         )
         app.save()
         # Update profile activity date to maintain streak
@@ -107,7 +117,10 @@ class JobApplicationView(APIView):
             "role": app.role,
             "company": app.company,
             "status": app.status,
-            "date": app.date.strftime("%b %d") if app.date else ""
+            "date": app.date.strftime("%b %d") if app.date else "",
+            "description": app.description,
+            "requirements": app.requirements or [],
+            "source_url": app.source_url,
         }, status=201)
 
     def put(self, request, pk):
@@ -503,9 +516,270 @@ class AINudgesView(APIView):
         if not nudges:
             nudges.append({
                 "type": "info",
-                "icon": "\U0001f4a1",
+                "icon": "💡",
                 "message": "Keep going! Consistent daily effort is the key to landing your next role. Check your goals.",
                 "action": "Open Goals"
             })
 
         return Response(nudges)
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .mongo_models import Note
+from users.mongo_auth import MongoTokenAuthentication, IsAuthenticatedMongo   # adjust import path if needed
+
+class NoteView(APIView):
+    authentication_classes = [MongoTokenAuthentication]
+    permission_classes = [IsAuthenticatedMongo]
+
+    def get_user_id(self, request):
+        # Get user_id from authenticated user (MongoUserWrapper)
+        return request.user.id
+
+    def get(self, request):
+        user_id = self.get_user_id(request)
+        # Only fetch non-deleted notes
+        notes = Note.objects(user_id=user_id, deleted_at=None).order_by("-pinned", "-updated_at")
+        data = [{
+            "id": str(n.id),
+            "title": n.title,
+            "content": n.content,
+            "pinned": n.pinned,
+            "createdAt": n.created_at.isoformat(),
+            "updatedAt": n.updated_at.isoformat(),
+        } for n in notes]
+        return Response(data)
+
+    def post(self, request):
+        user_id = self.get_user_id(request)
+        title = request.data.get("title", "").strip()
+        content = request.data.get("content", "")
+
+        if not title:
+            return Response({"error": "Title is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        note = Note(
+            user_id=user_id,
+            title=title,
+            content=content,
+            pinned=False
+        )
+        note.save()
+
+        return Response({
+            "id": str(note.id),
+            "title": note.title,
+            "content": note.content,
+            "pinned": note.pinned,
+            "createdAt": note.created_at.isoformat(),
+            "updatedAt": note.updated_at.isoformat(),
+        }, status=status.HTTP_201_CREATED)
+
+    def put(self, request, pk):
+        user_id = self.get_user_id(request)
+        try:
+            note = Note.objects.get(id=pk, user_id=user_id, deleted_at=None)
+        except Note.DoesNotExist:
+            return Response({"error": "Note not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Update fields
+        if "title" in request.data:
+            note.title = request.data["title"].strip()
+        if "content" in request.data:
+            note.content = request.data["content"]
+        if "pinned" in request.data:
+            note.pinned = request.data["pinned"]
+
+        note.updated_at = datetime.utcnow()
+        note.save()
+
+        return Response({
+            "id": str(note.id),
+            "title": note.title,
+            "content": note.content,
+            "pinned": note.pinned,
+            "createdAt": note.created_at.isoformat(),
+            "updatedAt": note.updated_at.isoformat(),
+        })
+
+    def delete(self, request, pk):
+        user_id = self.get_user_id(request)
+        try:
+            note = Note.objects.get(id=pk, user_id=user_id, deleted_at=None)
+        except Note.DoesNotExist:
+            return Response({"error": "Note not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Soft delete
+        note.soft_delete()
+        return Response({"success": True, "restorable": True})
+
+
+class NoteRestoreView(APIView):
+    authentication_classes = [MongoTokenAuthentication]
+    permission_classes = [IsAuthenticatedMongo]
+
+    def post(self, request, pk):
+        user_id = request.user.id
+        try:
+            note = Note.objects.get(id=pk, user_id=user_id, deleted_at__ne=None)
+        except Note.DoesNotExist:
+            return Response({"error": "Deleted note not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        note.restore()
+        return Response({
+            "id": str(note.id),
+            "title": note.title,
+            "content": note.content,
+            "pinned": note.pinned,
+            "createdAt": note.created_at.isoformat(),
+            "updatedAt": note.updated_at.isoformat(),
+        })
+
+
+class JobScrapeView(APIView):
+    """
+    POST /api/tracker/scrape-job/
+    Body: { "url": "https://..." }
+    Returns: { role, company, description, requirements[], source_url, warning? }
+    """
+
+    HEADERS = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/125.0.0.0 Safari/537.36"
+        ),
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    }
+
+    def _fetch_page_text(self, url):
+        """Fetch URL and return (clean_text, meta_title, meta_description, warning)."""
+        warning = None
+        try:
+            resp = requests.get(url, headers=self.HEADERS, timeout=10, allow_redirects=True)
+        except Exception as e:
+            return None, None, None, f"Could not reach URL: {str(e)}"
+
+        if resp.status_code in (401, 403):
+            warning = "This site requires login. Extracted from public preview only."
+        elif resp.status_code != 200:
+            return None, None, None, f"URL returned HTTP {resp.status_code}"
+
+        soup = BeautifulSoup(resp.text, "html.parser")
+
+        # Meta tags (reliable even for auth-walled pages)
+        meta_title = (
+            soup.find("meta", property="og:title") or
+            soup.find("meta", attrs={"name": "title"})
+        )
+        meta_title = meta_title["content"] if meta_title and meta_title.get("content") else ""
+
+        meta_desc = (
+            soup.find("meta", property="og:description") or
+            soup.find("meta", attrs={"name": "description"})
+        )
+        meta_desc = meta_desc["content"] if meta_desc and meta_desc.get("content") else ""
+
+        # Remove boilerplate tags
+        for tag in soup(["script", "style", "nav", "footer", "header", "noscript"]):
+            tag.decompose()
+
+        # Extract main body text (capped at 6000 chars to stay within prompt limits)
+        raw_text = soup.get_text(separator="\n", strip=True)
+        clean_text = re.sub(r"\n{3,}", "\n\n", raw_text)[:6000]
+
+        return clean_text, meta_title, meta_desc, warning
+
+    def _call_gemini(self, text, meta_title, meta_desc):
+        """Call Gemini to extract structured job info from page text."""
+        api_key = getattr(django_settings, "GEMINI_API_KEY", "")
+        if not api_key:
+            return None, "GEMINI_API_KEY not configured"
+
+        prompt = f"""You are a job listing parser. Extract the following fields from the text below.
+Return ONLY valid JSON with these keys:
+- "role": job title (string)
+- "company": company name (string)
+- "description": 2-3 sentence summary of what the role involves (string)
+- "requirements": list of 5-8 key requirements or skills (array of strings)
+
+If information is missing or unclear, use the meta title/description as fallback.
+Meta title: {meta_title}
+Meta description: {meta_desc}
+
+Job page text:
+{text}
+
+Return only JSON, no markdown, no explanation."""
+
+        try:
+            resp = requests.post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}",
+                headers={"Content-Type": "application/json"},
+                json={
+                    "contents": [{"parts": [{"text": prompt}]}],
+                    "generationConfig": {"temperature": 0.1, "maxOutputTokens": 512}
+                },
+                timeout=20
+            )
+            resp.raise_for_status()
+            raw = resp.json()
+            content = raw["candidates"][0]["content"]["parts"][0]["text"]
+            # Strip markdown code fences if present
+            content = re.sub(r"^```(?:json)?\s*", "", content.strip())
+            content = re.sub(r"\s*```$", "", content.strip())
+            parsed = json.loads(content)
+            return parsed, None
+        except json.JSONDecodeError:
+            return None, "AI returned non-JSON response"
+        except Exception as e:
+            return None, str(e)
+
+    def post(self, request):
+        url = request.data.get("url", "").strip()
+        if not url:
+            return Response({"error": "url is required"}, status=400)
+
+        if not url.startswith(("http://", "https://")):
+            url = "https://" + url
+
+        # Detect LinkedIn early
+        is_linkedin = "linkedin.com" in url
+        warning = None
+
+        page_text, meta_title, meta_desc, fetch_warning = self._fetch_page_text(url)
+        if fetch_warning and not page_text:
+            return Response({"error": fetch_warning}, status=422)
+        if fetch_warning:
+            warning = fetch_warning
+
+        # For LinkedIn with no real content, use meta fallback text
+        text_to_parse = page_text if page_text and len(page_text) > 200 else f"{meta_title}\n{meta_desc}"
+
+        extracted, ai_error = self._call_gemini(text_to_parse, meta_title, meta_desc)
+        if ai_error and not extracted:
+            # Graceful degradation: return what we have from meta tags
+            return Response({
+                "role": meta_title,
+                "company": "",
+                "description": meta_desc,
+                "requirements": [],
+                "source_url": url,
+                "warning": f"AI parsing failed ({ai_error}). Filled from page meta-tags only."
+            })
+
+        result = {
+            "role": extracted.get("role", meta_title) or meta_title,
+            "company": extracted.get("company", ""),
+            "description": extracted.get("description", meta_desc) or meta_desc,
+            "requirements": extracted.get("requirements", []),
+            "source_url": url,
+        }
+        if warning:
+            result["warning"] = warning
+        if is_linkedin and not result["company"]:
+            result["warning"] = (result.get("warning", "") + " LinkedIn limits public job data. Please verify company name.").strip()
+
+        return Response(result)

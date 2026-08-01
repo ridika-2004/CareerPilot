@@ -245,3 +245,41 @@ def hunt_jobs_view(request):
             {"error": str(e)},
             status=500
         )
+
+@csrf_exempt
+def apply_job(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST only"}, status=405)
+    
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    
+    user_id = body.get("user_id")
+    job_id = body.get("job_id")
+    job_data = body.get("job_data", {})
+    
+    if not user_id or not job_id:
+        return JsonResponse({"error": "user_id and job_id required"}, status=400)
+    
+    # Check if already applied
+    existing = JobApplication.objects(user_id=user_id, job_id=job_id).first()
+    if existing:
+        # If already applied, we can delete it to "unapply" (toggle)
+        existing.delete()
+        return JsonResponse({"applied": False})
+    else:
+        JobApplication(user_id=user_id, job_id=job_id, job_data=job_data).save()
+        return JsonResponse({"applied": True})
+
+@csrf_exempt
+def get_applied_jobs(request):
+    user_id = request.GET.get("user_id")
+    if not user_id:
+        return JsonResponse({"error": "user_id required"}, status=400)
+    
+    applied = JobApplication.objects(user_id=user_id)
+    return JsonResponse({
+        "applied_ids": [app.job_id for app in applied]
+    })
