@@ -28,3 +28,19 @@ class ChatSession(Document):
         "collection": "chat_sessions",
         "indexes": ["user_id"]
     }
+
+
+from mongoengine import Document, StringField, DateTimeField, DictField
+from datetime import datetime
+
+class JobApplication(Document):
+    user_id = StringField(required=True)
+    job_id = StringField(required=True)   # unique identifier from the job source
+    job_data = DictField()                # store the full job details (optional)
+    applied_at = DateTimeField(default=datetime.utcnow)
+
+    meta = {
+        'indexes': [
+            {'fields': ['user_id', 'job_id'], 'unique': True}
+        ]
+    }

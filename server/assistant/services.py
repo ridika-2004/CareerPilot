@@ -132,9 +132,21 @@ def _classify_location_match(job_location, job_title, query_location_keywords):
         return "remote"
     return "other"
 
-client = genai.Client(
-    api_key=os.getenv("GEMINI_API_KEY")
-)
+_client = None
+
+
+def _get_client():
+    global _client
+    if _client is None:
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "GEMINI_API_KEY environment variable is not set. "
+                "Add it to your .env file or export it before running the server."
+            )
+        _client = genai.Client(api_key=api_key)
+    return _client
+
 
 # Models to try in order (each has its own free-tier quota)
 FALLBACK_MODELS = ["gemini-2.0-flash", "gemini-2.5-flash"]
@@ -149,13 +161,13 @@ def call_gemini(prompt, config=None, max_retries=2):
         for attempt in range(max_retries + 1):
             try:
                 if config:
-                    response = client.models.generate_content(
+                    response = _get_client().models.generate_content(
                         model=model,
                         contents=prompt,
                         config=config
                     )
                 else:
-                    response = client.models.generate_content(
+                    response = _get_client().models.generate_content(
                         model=model,
                         contents=prompt
                     )

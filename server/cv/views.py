@@ -102,3 +102,33 @@ class CVAskView(APIView):
             return Response(result)
         except Exception as e:
             return Response({'error': str(e)}, status=500)
+
+
+class CVStatusView(APIView):
+    def get(self, request):
+        user_id = request.query_params.get('user_id')
+
+        if not user_id:
+            return Response({'error': 'user_id is required'}, status=400)
+
+        try:
+            record = CVUploadRecord.objects(user_id=str(user_id)).order_by('-uploaded_at').first()
+            if not record:
+                return Response({'uploaded': False})
+
+            parsed_cv = None
+            if record.cv_summary:
+                try:
+                    parsed_cv = json.loads(record.cv_summary)
+                except Exception:
+                    parsed_cv = None
+
+            return Response({
+                'uploaded': True,
+                'file_name': record.file_name,
+                'chunks_stored': record.chunks_stored,
+                'sections': list(parsed_cv.keys()) if isinstance(parsed_cv, dict) else [],
+                'parsed_cv': parsed_cv,
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=500)

@@ -1,5 +1,6 @@
 import useAuth from "../context/useAuth";
 import { Routes, Route, Navigate } from "react-router-dom";
+import { Loader2, Zap } from "lucide-react";
 
 import Layout from "../components/Layout";
 
@@ -31,15 +32,25 @@ export default function App() {
       <div
         style={{
           display: "flex",
+          flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
           height: "100vh",
-          fontFamily: "'Roboto Mono', monospace",
-          background: "#f7f6f3",
-          color: "#888",
+          fontFamily: "var(--font-sans)",
+          background: "var(--bg)",
+          gap: 20,
         }}
       >
-        Loading...
+        <div style={{
+          width: 56, height: 56, borderRadius: 14,
+          background: "var(--accent-gradient)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: "var(--btn-accent-text)", marginBottom: 8,
+        }}>
+          <Zap size={28} />
+        </div>
+        <Loader2 size={24} style={{ color: "var(--accent)", animation: "spin 1s linear infinite" }} />
+        <div style={{ fontSize: 14, color: "var(--text-muted)", fontWeight: 500 }}>Loading CareerPilot...</div>
       </div>
     );
   }

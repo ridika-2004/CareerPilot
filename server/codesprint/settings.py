@@ -15,6 +15,12 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 MONGO_URI = os.getenv("MONGO_URI", "")
 
+# Gmail OAuth credentials (set in .env)
+GMAIL_CLIENT_ID = os.getenv("GMAIL_CLIENT_ID", "")
+GMAIL_CLIENT_SECRET = os.getenv("GMAIL_CLIENT_SECRET", "")
+GMAIL_REDIRECT_URI = os.getenv("GMAIL_REDIRECT_URI", "http://127.0.0.1:8000/api/gmail/callback/")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
 # SECURITY
 SECRET_KEY = os.getenv(
     "DJANGO_SECRET_KEY",
@@ -56,6 +62,7 @@ INSTALLED_APPS = [
     "assistant",
     "cv",
     "tracker",
+    "gmail",
 ]
 
 MIDDLEWARE = [

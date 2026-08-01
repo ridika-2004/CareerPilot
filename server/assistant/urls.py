@@ -11,4 +11,6 @@ urlpatterns = [
     path("sessions/<str:session_id>/delete/",delete_session),
     path("chat/",send_message),
     path("hunt/",hunt_jobs_view),
+    path("apply/", apply_job),
+    path("applied/", get_applied_jobs),
 ]

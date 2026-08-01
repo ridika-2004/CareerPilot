@@ -154,3 +154,34 @@ def logout(request):
     except Exception:
         pass
     return Response({"detail": "Logged out."})
+
+
+@api_view(["PATCH"])
+@authentication_classes([MongoTokenAuthentication])
+@permission_classes([IsAuthenticatedMongo])
+def update_profile(request):
+    user = request.user
+    full_name = request.data.get("full_name")
+    username = request.data.get("username")
+
+    if full_name is not None:
+        user.full_name = full_name.strip()
+
+    if username is not None:
+        username = username.strip()
+        if username and username != user.username:
+            if MongoUser.objects(username=username).count() > 0:
+                return Response(
+                    {"error": "Username already taken."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            user.username = username
+
+    user.save()
+    return Response({
+        "user_id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "full_name": user.full_name,
+        "role": _get_role(user),
+    })

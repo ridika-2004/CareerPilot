@@ -39,6 +39,17 @@ const authService = {
     }
   },
 
+  async updateProfile({ full_name, username }) {
+    const token = this.getToken();
+    const res = await api.patch(`/api/users/update-profile/`, {
+      full_name,
+      username,
+    }, {
+      headers: { Authorization: `Token ${token}` },
+    });
+    return res.data;
+  },
+
   saveSession(data) {
     localStorage.setItem("token", data.token);
     localStorage.setItem("user_id", data.user_id);

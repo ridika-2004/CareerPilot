@@ -6,7 +6,10 @@ from .views import (
     GoalView,
     DashboardStatsView,
     AINudgesView,
-    CustomGoalView
+    CustomGoalView,
+    NoteView,
+    NoteRestoreView,
+    JobScrapeView,
 )
 
 urlpatterns = [
@@ -21,4 +24,10 @@ urlpatterns = [
     path('goals/<str:pk>/', CustomGoalView.as_view(), name='tracker-custom-goal-detail'),
     path('dashboard/', DashboardStatsView.as_view(), name='tracker-dashboard'),
     path('nudges/', AINudgesView.as_view(), name='tracker-nudges'),
+
+    path('notes/', NoteView.as_view(), name='notes'),
+    path('notes/<str:pk>/', NoteView.as_view(), name='note-detail'),
+    path('notes/<str:pk>/restore/', NoteRestoreView.as_view(), name='note-restore'),
+    path('scrape-job/', JobScrapeView.as_view(), name='tracker-scrape-job'),
 ]
+
