@@ -36,8 +36,7 @@ Every AI response is grounded in **your actual CV**, not hallucinated generic pr
 ### Pillar 1 — Job Hunter Agent
 
 
-![Job Hunter](client/src/assets/job%20hunter.png)
-
+> <img align="right" width="400" src="client/src/assets/job%20hunter.png" />
 
 - Natural language job search: *"Find me ML internships in Dhaka open this month"*
 - Returns structured job cards: role, company, salary range, deadline, location, fit score
@@ -46,9 +45,7 @@ Every AI response is grounded in **your actual CV**, not hallucinated generic pr
 
 ### Pillar 2 — Profile & Resume Intelligence (RAG Core)
 
-
-![Resume Intelligence](client/src/assets/profile.png)
-
+> <img align="right" width="400" src="client/src/assets/profile.png" />
 
 - Upload a PDF/DOCX CV or build one directly in the platform
 - CV is chunked by section: experience, education, skills, projects
@@ -58,9 +55,7 @@ Every AI response is grounded in **your actual CV**, not hallucinated generic pr
 
 ### Pillar 3 — Personal AI Assistant
 
-
-![AI Assistant](client/src/assets/ai_assistent.png)
-
+> <img align="right" width="400" src="client/src/assets/ai_assistent.png" />
 
 - Conversational interface with full context of your profile
 - Handles queries such as:
@@ -72,9 +67,7 @@ Every AI response is grounded in **your actual CV**, not hallucinated generic pr
 
 ### Pillar 4 — Productivity & Progress Tracker
 
-
-![Tracker](client/src/assets/tracker.png)
-
+> <img align="right" width="400" src="client/src/assets/tracker.png" />
 
 - **Calendar & To-Do**: Deadline reminders linked to career goals
 - **Goal Setting**: Weekly/daily targets for applications, courses, and CV updates
@@ -84,7 +77,6 @@ Every AI response is grounded in **your actual CV**, not hallucinated generic pr
 
 
 ## Tech Stack
-
 
 | Layer | Technology |
 |---|---|
@@ -119,38 +111,6 @@ careerpilot/
 │
 └── README.md
 ```
-
-
-## Architecture
-
-
-```
-User
- │
- ├── Uploads CV (PDF/DOCX)
- │        │
- │        ▼
- │   [ CV Parser ] ──► [ Chunker ] ──► [ Embedder ] ──► [ Vector DB ]
- │                                                             │
- ├── Job Search Query                                          │
- │        │                                                    │
- │        ▼                                                    ▼
- │   [ Job Hunter Agent ] ◄──────────── RAG Query ────────────┘
- │        │
- │        ▼
- │   Structured Job Cards + Fit Scores
- │
- ├── Chat Query
- │        │
- │        ▼
- │   [ AI Assistant ] ◄──────────────── CV Context (RAG)
- │        │
- │        ▼
- │   Grounded Response
- │
- └── Tracker Module (Kanban, Calendar, Goals, Dashboard)
-```
-
 
 ## Local Setup
 
@@ -253,22 +213,10 @@ npm run test
 
 ## Demo
 
-
-<!-- Replace with your actual demo video link -->
-[Watch the demo video](#)
+[Watch the demo video](https://youtu.be/_1qxkC4VCvQ?si=u27XqwLVNoGgLB2t)
 
 
 The demo covers this full flow: CV upload → job search → fit score → AI assistant query → cover letter draft → tracker update.
-
-
-## Team
-
-
-| Name | Department |
-|---|---|
-| [Ridika Naznin](https://github.com/ridika-2004) | Software Engineering |
-| [Zannatul Adon Sabiha](https://github.com/ZAsabiha) | Software Engineering |
-| [Afrin Jahan Era](https://github.com/AfrinJahanEra) | Software Engineering |
 
 
 ## License
