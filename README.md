@@ -210,6 +210,41 @@ cd frontend
 npm run test
 ```
 
+## System Architecture
+> <img width="1004" src="https://github.com/user-attachments/assets/0d98dc11-7eec-44d9-a0b5-9c41c8a61bd4" />
+
+
+## Database Design
+The application uses MongoDB with separate collections for users, resumes, jobs, applications, and career goals.
+> <img width="200" align="right" src="https://github.com/user-attachments/assets/055e4ee9-e958-4213-aa71-2ed4bc0bcb35" />
+
+### Collection Relationships
+
+| Collection | Purpose |
+|------------|---------|
+| **Users** | Stores user accounts and profile information |
+| **Resume Chunks** | Stores segmented resume content and vector embeddings for semantic search |
+| **Jobs** | Stores job postings and company information |
+| **Applications** | Tracks applications submitted by users and their status |
+| **Goals** | Tracks users' career objectives and progress |
+
+## Performance Optimization
+
+> <img width="200" align="right" src="https://github.com/user-attachments/assets/a33ac856-02eb-45eb-964f-e821b923698a" />
+
+To ensure the application remains fast, responsive, and scalable, several performance optimization techniques are incorporated into the system. Frequently requested data, such as job search results, AI-generated responses, and dashboard statistics, can be cached to minimize repeated database queries and API calls, significantly reducing response time and server load. Resource-intensive operations, including resume parsing, embedding generation, and job crawling, are designed to run asynchronously in the background so that users do not experience delays while interacting with the application. Additionally, database indexing is applied to commonly queried fields such as user IDs, application status, and deadlines, enabling faster search, filtering, and retrieval operations as the dataset grows. Together, these optimizations improve overall system performance, enhance the user experience, and support efficient scaling for a large number of users.
+
+## Scaling Strategy of 10,000 Users
+
+> <img width="1224" src="https://github.com/user-attachments/assets/bb280722-a6f4-43de-87e7-9202ee112a54" />
+
+
+| Component | Scaling Strategy |
+|-----------|------------------|
+| **Frontend** | The React frontend is distributed through a Content Delivery Network (CDN) to serve static assets from locations closer to users. This reduces latency, improves page load times, lowers the load on the origin server, and provides a smoother experience for users across different regions. |
+| **Backend** | Multiple backend application instances are deployed behind a load balancer to distribute incoming requests evenly. This horizontal scaling approach increases throughput, improves availability, provides fault tolerance, and allows additional instances to be added as user traffic grows. |
+| **Database** | MongoDB is configured as a replica set consisting of one primary node and multiple secondary nodes. This architecture enables read scalability, automatic failover, and data redundancy, ensuring high availability and reliable performance under increased workloads. |
+| **Vector Search** | Vector embeddings are stored separately from transactional application data to optimize semantic search operations. Isolating the vector database allows it to scale independently, reduces query latency, and provides faster similarity search without affecting the primary database. |
 
 ## Demo
 
